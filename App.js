@@ -1,85 +1,57 @@
-import React from 'react';
-import { StyleSheet, Text, View, FlatList, SafeAreaView, Dimensions } from 'react-native';
-import { hidden } from 'ansi-colors';
+import React from 'react'
+import { StyleSheet, SafeAreaView, Animated, Easing, Dimensions, FlatList, View, Text } from 'react-native'
+import memoize from 'fast-memoize'
+import { Svg } from 'expo'
+import Color from 'color'
 
-const state = {
-  sequences: [
-    {
-      id: 1,
-      timers: [
-        {
-          id: 11,
-          activity: {
-            name: 'activity 11',
-          },
-        },
-        {
-          id: 12,
-          activity: {
-            name: 'activity 12',
-          },
-        },
-        {
-          id: 13,
-          activity: {
-            name: 'activity 13',
-          },
-        },
-      ]
-    },
-    {
-      id: 2,
-      timers: [
-        {
-          id: 21,
-          activity: {
-            name: 'activity 11',
-          },
-        },
-        {
-          id: 22,
-          activity: {
-            name: 'activity 12',
-          },
-        },
-        {
-          id: 23,
-          activity: {
-            name: 'activity 13',
-          },
-        },
-      ]
-    },
-    {
-      id: 3,
-      timers: [
-        {
-          id: 21,
-          activity: {
-            name: 'activity 11',
-          },
-        },
-        {
-          id: 22,
-          activity: {
-            name: 'activity 12',
-          },
-        },
-        {
-          id: 23,
-          activity: {
-            name: 'activity 13',
-          },
-        },
-      ]
-    },
-  ],
-}
+import Timer from './Timer'
 
-var {heigh: windowHeight, width: windowWidth} = Dimensions.get('window');
+const TIMER_DURATION = 3000
 
-export default class App extends React.Component {
+var { heigh: windowHeight, width: windowWidth } = Dimensions.get('window');
+class App extends React.Component {
+  constructor(props) {
+    super(props)
+    this.progressionTotal = new Animated.Value(0)
+
+    this.sequences = [
+      {
+        id: 100,
+        timers: [
+          0,1,2,3
+        ].map((id, index) => ({
+            id,
+            progression: this.progressionTotal,
+            startAt: index,
+            stopAt: index + 1,
+        })),
+      },
+    ]
+    
+    this.animation = Animated.timing(
+      this.progressionTotal,
+      {
+        toValue: 4,
+        duration: TIMER_DURATION,
+        easing: Easing.linear,
+      },
+    )
+  }
+  
+  componentDidMount() {
+    this._startAnimation();
+  }
+
+  _startAnimation = () => {
+    this.animation.start(() =>{
+      this.progressionTotal.setValue(0)
+      this._startAnimation()
+    })
+  }
+
   render() {
+    const d = ''
+
     return (
       <SafeAreaView
         style={styles.app}
@@ -87,74 +59,40 @@ export default class App extends React.Component {
         <FlatList
           style={styles.sequences}          
           horizontal
-          data={state.sequences}
+          data={this.sequences}
           pagingEnabled
           keyExtractor={({ id }) => `${id}`}
-          renderItem={({ item: { id, timers } }) => (
+          renderItem={({ item: { timers } }) => (
             <View
               style={styles.sequence}
             >
               <FlatList
                 data={timers}
                 keyExtractor={({ id }) => `${id}`}
-                renderItem={({ item: { name } }) => (
-                  <View
-                    style={styles.timer}
-                  >
-                    <Text>
-                      {`${name}`}
-                    </Text>
-                  </View>
-                )}
-                ListFooterComponent={(
-                  <View
-                    style={styles.timer}
-                  >
-                    <Text>
-                      {'+'}
-                    </Text>
-                  </View>
+                renderItem={({ item: timer }) => (
+                  <Timer
+                    {...timer}
+                  />
                 )}
               />
             </View>
           )}
-          ListFooterComponent={(
-            <View
-              style={styles.sequence}
-            >
-              <View
-                style={styles.timer}
-              >
-                <Text>
-                  {'+'}
-                </Text>
-              </View>
-            </View>
-          )}
         />
       </SafeAreaView>
-    );
+    )
   }
 }
 
 const styles = StyleSheet.create({
   app: {
     flex: 1,
-    backgroundColor: '#999',
+    backgroundColor: '#000000',
   },
-  sequences: {
-    backgroundColor: '#f00',
-    borderColor: '#0f0',
-  },
+  sequences: {},
   sequence: {
     flexDirection: 'column',
     width: windowWidth,
-  },
-  timer: {
-    aspectRatio: 1,
-    backgroundColor: '#ff0',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
   }
-});
+})
+
+export default App
