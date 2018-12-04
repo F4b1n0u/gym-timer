@@ -1,21 +1,21 @@
 import React from 'react'
-import { StyleSheet, SafeAreaView, Animated, Easing } from 'react-native'
+import { StyleSheet, Animated, View, Easing } from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 import Color from 'color'
 
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
-const TIMER_WIDTH = 1 / 10
+const TIMER_WIDTH = 1.5 / 10
 const TIMER_WIDTH_DELTA = TIMER_WIDTH / 2
 const TIMER_RADIUS = 3 / 10
 const TIMER_START_POSITION = 2 / 10
-const TIMER_BORDER_WIDTH = .5 / 100
+const TIMER_BORDER_WIDTH = .8 / 100
 
 // #5A7AED
 // #DEA950
 // #212121
-const TIMER_COLOR = Color('#DEA950') 
+const TIMER_COLOR = Color('#5A7AED') 
 const TIMER_TRAIL_COLOR = TIMER_COLOR.lightness(8)
 
 class Timer extends React.Component {
@@ -23,90 +23,134 @@ class Timer extends React.Component {
     super(props)
 
     const {
-      progression,
-      startAt,
-      stopAt,
+      progression: {
+        startAt,
+        stopAt,
+        animated,
+      },
+      steps: {
+        inStartAt,
+        loopStartAt,
+        loopHalfAt,
+        outStartAt,
+      },
+      easings: {
+        in: easingIn,
+        loopStart: easingLoopStart,
+        loopEnd: easingLoopEnd,
+        out: easingOut,
+    },
     } = props
-
-    // for the join animation
-    const retardedStartat = startAt - (1/33)
 
     const getStep = (ratio) => {
       return startAt + Math.abs(stopAt - startAt) * ratio
     }
 
-    this.tailPositionDelta = progression.interpolate({
-      inputRange:  [retardedStartat, getStep(1/6) , stopAt],
-      outputRange: [-TIMER_WIDTH/2, 3/6, 3/6],
+    this.tailPositionDelta = animated.interpolate({
+      inputRange:  [getStep(inStartAt),                  getStep(loopStartAt)],
+      outputRange: [-TIMER_WIDTH/2 - TIMER_BORDER_WIDTH, 1/2],
       extrapolate: 'clamp',
+      easing: easingIn,
+      useNativeDriver: true,
     })
-    this.firstArcRotationProgression = progression.interpolate({
-      inputRange:  [retardedStartat, getStep(1/6), getStep(2/6),    getStep(3/6), getStep(4/6), getStep(5/6), stopAt],
-      outputRange: [Math.PI, Math.PI,      Math.PI * 3 / 2, Math.PI * 2,  Math.PI * 2,  Math.PI * 2,  Math.PI * 2],
+    this.firstArcRotationProgression = animated.interpolate({
+      inputRange:  [getStep(loopStartAt), getStep(loopHalfAt)],
+      outputRange: [Math.PI,              Math.PI * 2],
       extrapolate: 'clamp',
+      easing: easingLoopStart,
+      useNativeDriver: true,
     })
 
-    this.secondArcRotationProgression = progression.interpolate({
-      inputRange:  [retardedStartat, getStep(1/6),  getStep(2/6), getStep(3/6), getStep(4/6),    getStep(5/6), stopAt],
-      outputRange: [0,       0,             0,            0,            Math.PI * 1 / 2, Math.PI,      Math.PI],
+    this.secondArcRotationProgression = animated.interpolate({
+      inputRange:  [getStep(loopHalfAt), getStep(outStartAt)],
+      outputRange: [0,                   Math.PI],
       extrapolate: 'clamp',
+      easing: easingLoopEnd,
+      useNativeDriver: true,
     })
-    this.headPositionDelta = progression.interpolate({
-      inputRange:  [retardedStartat, getStep(5/6), stopAt],
-      outputRange: [0,       0/6,          3/6 + TIMER_WIDTH/2 ],
-      extraPolate: 'clamp',
+    this.headPositionDelta = animated.interpolate({
+      inputRange:  [getStep(outStartAt), getStep(1)],
+      outputRange: [0,                   3/6 + TIMER_WIDTH/2 ],
+      extrapolate: 'clamp',
+      easing: easingOut,
+      useNativeDriver: true,
     })
 
-    progression.addListener(this._setArcsSvgPathD)
+    animated.addListener(this._setArcsSvgPathD)
   }
   
   componentDidMount() {
-    this._setArcsSvgPathD({ value: this.props.progression._value })
+    const {
+      progression: {
+        animated,
+      }
+    } = this.props
+
+    this._setArcsSvgPathD({ value: animated._value })
   }
 
   componentWillMount() {
-    this.props.progression.removeListener(this._setFirstArcSvgPathD);
+    const {
+      progression: {
+        animated,
+      }
+    } = this.props
+
+    animated.removeListener(this._setFirstArcSvgPathD);
   }
 
   render() {
     const d = ''
 
     return (
-      <Svg
-        style={styles.timer}
-        viewBox={`0 0 1 1`}
-      >
-        <AnimatedSvgPath
-          d={this._getFirstArcSvgPathD(3/6, Math.PI * 2)}
-          fill={TIMER_TRAIL_COLOR.hex()}
-          strokeWidth={TIMER_BORDER_WIDTH}
-        />
-        <AnimatedSvgPath
-          d={this._getSecondArcSvgPathD(Math.PI, 3/6)}
-          fill={TIMER_TRAIL_COLOR.hex()}
-          strokeWidth={TIMER_BORDER_WIDTH}
-        />
+      <View>
+        <Svg
+          style={styles.timer}
+          viewBox={`0 0 1 1`}
+        >
+          <AnimatedSvgPath
+            d={this._getFirstArcSvgPathD(3/6, Math.PI * 2)}
+            fill={TIMER_TRAIL_COLOR.hex()}
+          />
+          <AnimatedSvgPath
+            d={this._getSecondArcSvgPathD(Math.PI, 3/6)}
+            fill={TIMER_TRAIL_COLOR.hex()}
+          />
 
-        <AnimatedSvgPath
-          ref={ ref => this._firstArcSvgPath = ref }
-          d={d}
-          stroke="black"
-          fill={TIMER_COLOR.hex()}
-          strokeWidth={TIMER_BORDER_WIDTH}
-        />
-        
-        <AnimatedSvgPath
-          ref={ ref => this._secondArcSvgPath = ref }
-          d={d}
-          stroke="black"
-          fill={TIMER_COLOR.hex()}
-          strokeWidth={TIMER_BORDER_WIDTH}
-        />
-      </Svg>
+          <AnimatedSvgPath
+            ref={ ref => this._firstArcSvgPath = ref }
+            d={d}
+            stroke="black"
+            fill={TIMER_COLOR.hex()}
+            strokeWidth={TIMER_BORDER_WIDTH}
+          />
+          
+          <AnimatedSvgPath
+            ref={ ref => this._secondArcSvgPath = ref }
+            d={d}
+            stroke="black"
+            fill={TIMER_COLOR.hex()}
+            strokeWidth={TIMER_BORDER_WIDTH}
+          />
+        </Svg>
+      </View>
     )
   }
 
-  _setArcsSvgPathD = memoize((progression) => {
+  _setArcsSvgPathD = (progression) => {
+    const {
+      progression: {
+        startAt,
+        stopAt
+      },
+      steps: {
+        loopHalfAt,
+      }
+    } = this.props
+    if (progression.value < startAt || progression.value > stopAt) {
+      return null
+    }
+
     const tailPositionDeltaValue = this.tailPositionDelta.__getValue()
     const firstArcRotationProgressionValue = this.firstArcRotationProgression.__getValue()
 
@@ -118,12 +162,12 @@ class Timer extends React.Component {
 
     this._firstArcSvgPath && this._firstArcSvgPath.setNativeProps({ d: firstArcSvgPathD});
     
-    if(progression.value > this.props.startAt + Math.abs(this.props.stopAt - this.props.startAt)/2) {
+    if(progression.value > startAt + Math.abs(stopAt - startAt) * loopHalfAt) {
       this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: secondArcSvgPathD});
     } else {
       this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: ''});
     }
-  })
+  }
  
   _getFirstArcSvgPathD = memoize((tailPositionDeltaValue, firstArcRotationProgressionValue) => {
     return `
@@ -213,7 +257,7 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     // borderWidth: 1,
-    // borderColor: "grey",
+    borderColor: "grey",
   }
 })
 
