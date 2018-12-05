@@ -13,80 +13,121 @@ class Loop extends React.Component {
     const {
       width,
       borderWidth,
-      progression: {
-        startAt,
-        stopAt,
-        animated,
-      },
-      steps: {
-        inStartAt,
-        loopStartAt,
-        loopHalfAt,
-        outStartAt,
-      },
       easings: {
         in: easingIn,
         loopStart: easingLoopStart,
         loopEnd: easingLoopEnd,
         out: easingOut,
-    },
+      },
     } = props
 
-    const getStep = (ratio) => {
-      return startAt + Math.abs(stopAt - startAt) * ratio
-    }
+    this._progression = new Animated.Value(0)
 
-    this.tailPositionDelta = animated.interpolate({
-      inputRange:  [getStep(inStartAt),                  getStep(loopStartAt)],
+    this.tailPositionDelta = this._progression.interpolate({
+      inputRange:  [0,                      1],
       outputRange: [-width/2 - borderWidth, 1/2],
       extrapolate: 'clamp',
       easing: easingIn,
       useNativeDriver: true,
     })
-    this.firstArcRotationProgression = animated.interpolate({
-      inputRange:  [getStep(loopStartAt), getStep(loopHalfAt)],
-      outputRange: [Math.PI,              Math.PI * 2],
+
+    this.firstArcRotationProgression = this._progression.interpolate({
+      inputRange:  [1,       2],
+      outputRange: [Math.PI, Math.PI * 2],
       extrapolate: 'clamp',
       easing: easingLoopStart,
       useNativeDriver: true,
     })
 
-    this.secondArcRotationProgression = animated.interpolate({
-      inputRange:  [getStep(loopHalfAt), getStep(outStartAt)],
-      outputRange: [0,                   Math.PI],
+    this.secondArcRotationProgression = this._progression.interpolate({
+      inputRange:  [2, 3],
+      outputRange: [0, Math.PI],
       extrapolate: 'clamp',
       easing: easingLoopEnd,
       useNativeDriver: true,
     })
-    this.headPositionDelta = animated.interpolate({
-      inputRange:  [getStep(outStartAt), getStep(1)],
-      outputRange: [0,                   3/6 + width/2 ],
+
+    this.headPositionDelta = this._progression.interpolate({
+      inputRange:  [3, 4],
+      outputRange: [0, 3/6 + width/2 ],
       extrapolate: 'clamp',
       easing: easingOut,
       useNativeDriver: true,
     })
 
-    animated.addListener(this._setArcsSvgPathD)
+    this._progression.addListener(this._setArcsSvgPathD)
   }
   
-  componentDidMount() {
+  _startAnimation = () => {
     const {
-      progression: {
-        animated,
-      }
+      durations: {
+        in: durationIn,
+        loopStart: durationLoopStart,
+        loopEnd: durationLoopEnd,
+        out: durationOut,
+      },
     } = this.props
 
-    this._setArcsSvgPathD({ value: animated._value })
+    Animated.sequence([
+      Animated.timing(
+        this._progression,
+        {
+          toValue: 1,
+          duration: durationIn,
+          seNativeDriver: true,
+          isInteraction: false,
+        },
+      ),
+      Animated.timing(
+        this._progression,
+        {
+          toValue: 2,
+          duration: durationLoopStart,
+          seNativeDriver: true,
+          isInteraction: false,
+        },
+      ),
+      Animated.timing(
+        this._progression,
+        {
+          toValue: 3,
+          duration: durationLoopEnd,
+          seNativeDriver: true,
+          isInteraction: false,
+        },
+      ),
+      Animated.timing(
+        this._progression,
+        {
+          toValue: 4,
+          duration: durationOut,
+          seNativeDriver: true,
+          isInteraction: false,
+        },
+      )
+    ]).start(() => {
+      Animated.timing(
+        this._progression,
+        {
+          toValue: 0,
+          duration: 10000,
+          seNativeDriver: true,
+          isInteraction: false,
+        },
+      ).start()
+      // this._progression.setValue(0)
+      // this._startAnimation()
+    })
+  }
+
+  componentDidMount() {
+    this._setArcsSvgPathD({ value: this._progression.__getValue() })
+
+    this._startAnimation()
   }
 
   componentWillMount() {
-    const {
-      progression: {
-        animated,
-      }
-    } = this.props
-
-    animated.removeListener(this._setFirstArcSvgPathD);
+    this._progression.removeListener(this._setFirstArcSvgPathD);
   }
 
   render() {
@@ -136,16 +177,7 @@ class Loop extends React.Component {
   }
 
   _setArcsSvgPathD = (progression) => {
-    const {
-      progression: {
-        startAt,
-        stopAt
-      },
-      steps: {
-        loopHalfAt,
-      }
-    } = this.props
-    if (progression.value < startAt || progression.value > stopAt) {
+    if (progression.value < 0 || progression.value > 4) {
       return null
     }
 
@@ -160,7 +192,7 @@ class Loop extends React.Component {
 
     this._firstArcSvgPath && this._firstArcSvgPath.setNativeProps({ d: firstArcSvgPathD});
     
-    if(progression.value > startAt + Math.abs(stopAt - startAt) * loopHalfAt) {
+    if(progression.value > 2) {
       this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: secondArcSvgPathD});
     } else {
       this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: 'M 0 0'});

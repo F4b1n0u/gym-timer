@@ -1,23 +1,13 @@
 import React from 'react'
-import { StyleSheet, SafeAreaView, Animated, Easing, Dimensions, FlatList, View, Text } from 'react-native'
-import memoize from 'fast-memoize'
-import { Svg } from 'expo'
-import Color from 'color'
+import { StyleSheet, SafeAreaView, Easing, FlatList } from 'react-native'
 
-import Loop from './Loop'
-
-var { heigh: windowHeight, width: windowWidth } = Dimensions.get('window');
-
-const TIMER_DURATION = 60000
-const TIMER_INTERVAL_DURATION = 4000
-const TIMER_SECOND_LOOP_DURATION = 2000
-const ITEM_HEIGHT = windowWidth
-const HAS_INTERVAL = false
+import Sequence from './Sequence'
 
 const timerIds = [
-  0,1,
-  2,3
-  ,4,5,6,7,8,9,
+  0,
+  // 1,
+  // 2,3
+  // ,4,5,6,7,8,9,
   // 10,11,12,13,14,15,16,17,18,19,
   // 20,21,22,23,24,25,26,27,28,29,
   // 30,31,32,33,34,35,36,37,38,39,
@@ -32,30 +22,23 @@ const timerIds = [
 class App extends React.Component {
   constructor(props) {
     super(props)
-    this.progressionTotal = new Animated.Value(0)
 
     this.sequences = [
       {
         id: 100,
         timers: timerIds.map((id, index) => ({
           id,
-          progression: {
-            animated: this.progressionTotal,
-            startAt: index,
-            stopAt: index + 1,
-          },
-          steps:{
-            inStartAt: 0,
-            loopStartAt: 1 / (TIMER_DURATION) * (TIMER_INTERVAL_DURATION / 2),
-            loopHalfAt: 1 - (1 / (TIMER_DURATION) * TIMER_SECOND_LOOP_DURATION),
-            outStartAt: 1 - (1 / (TIMER_DURATION) * (TIMER_INTERVAL_DURATION / 2)),
+          durations: {
+            in: 500,
+            loopStart: 1000,
+            loopEnd: 1000,
+            out: 500,
           },
           easings: {
-              // with transition
               in: Easing.in(Easing.bounce),
-              // loopStart: Easing.in(Easing.ease),
-              loopEnd: Easing.out(Easing.ease),
-              out: Easing.out(Easing.linear),
+              loopStart: Easing.inOut(Easing.linear),
+              loopEnd: Easing.inOut(Easing.linear),
+              out: Easing.inOut(Easing.linear),
           },
           transitions: {
             in: true,
@@ -65,83 +48,17 @@ class App extends React.Component {
       },
     ]
     
-    this.animation = Animated.timing(
-      this.progressionTotal,
-      {
-        toValue: timerIds.length,
-        duration: TIMER_DURATION * timerIds.length,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      },
-    )
-
     this._sequences = {}
   }
-  
-  componentDidMount() {
-    
-    const sequenceNode = this._sequences[100]
-    let nextTimerIndex = 1
 
-    setTimeout(() => {
-      this._startAnimation();
-    }, 300) 
-    
-    this._interval = setInterval(() => {
-      sequenceNode.scrollToItem({
-        animated: true,
-        item: sequenceNode.props.data[nextTimerIndex],
-      })
-      nextTimerIndex++
-    }, TIMER_DURATION)
-    
-  }
-
-  componentWillUnmount = () => {
-    clearInterval(this._interval)
-  }
-
-  _startAnimation = () => {
-    this.animation.start(() =>{
-      this.progressionTotal.setValue(0)
-      this._startAnimation()
-    })
-  }
-
-  _renderSequence = ({ item: { id, timers } }) => (
-    <View
+  _renderSequence = ({ item: sequence }) => (
+    <Sequence
       style={styles.sequence}
-    >
-      <FlatList
-        ref={ ref => this._sequences[id] = ref }
-        // scrollEventThrottle={16}
-        data={timers}
-        keyExtractor={this._keyExtractor}
-        // getItemLayout={(data, index) => (
-        //   {
-        //     length: ITEM_HEIGHT,
-        //     offset: ITEM_HEIGHT * index,
-        //     index
-        //   }
-        // )}
-        renderItem={this._renderTimer}
-      />
-    </View>
+      {...sequence}
+    />
   )
 
   _keyExtractor = ({ id }) => `${id}`
-
-  _renderTimer = ({ item: timer }) => (
-    <Loop
-      {...timer}
-      width={15 / 100}
-      loopRadius={3 / 10}
-      xStartPosition={2 / 10}
-      fillColor={`#5A7AED`}
-      borderWidth={8 / 1000}
-      borderColor={`#000000`}
-    />
-  )
 
   render() {
     const d = ''
@@ -151,8 +68,8 @@ class App extends React.Component {
         style={styles.app}
       >
         <FlatList
-          // scrollEventThrottle={16}
-          // isInteraction={false}
+          scrollEventThrottle={16}
+          
           style={styles.sequences}          
           horizontal
           data={this.sequences}
@@ -174,10 +91,6 @@ const styles = StyleSheet.create({
   sequences: {
     backgroundColor: '#000',
   },
-  sequence: {
-    flexDirection: 'column',
-    width: windowWidth,
-  }
 })
 
 export default App
