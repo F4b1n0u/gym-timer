@@ -6,7 +6,7 @@ import Color from 'color'
 
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
-class Timer extends React.Component {
+class Loop extends React.Component {
   constructor(props) {
     super(props)
 
@@ -100,40 +100,38 @@ class Timer extends React.Component {
     trailColor = fillColor.lightness(8)
     borderColor = Color(borderColor)
     
-    const d = ''
+    const d = 'M 0 0'
 
     return (
-      <View>
-        <Svg
-          style={styles.timer}
-          viewBox={`0 0 1 1`}
-        >
-          <AnimatedSvgPath
-            d={this._getFirstArcSvgPathD(3/6, Math.PI * 2)}
-            fill={trailColor.hex()}
-          />
-          <AnimatedSvgPath
-            d={this._getSecondArcSvgPathD(Math.PI, 3/6)}
-            fill={trailColor.hex()}
-          />
+      <Svg
+        style={styles.loop}
+        viewBox={`0 0 1 1`}
+      >
+        <AnimatedSvgPath
+          d={this._getFirstArcSvgPathD(3/6, Math.PI * 2)}
+          fill={trailColor.hex()}
+        />
+        <AnimatedSvgPath
+          d={this._getSecondArcSvgPathD(Math.PI, 3/6)}
+          fill={trailColor.hex()}
+        />
 
-          <AnimatedSvgPath
-            ref={ ref => this._firstArcSvgPath = ref }
-            d={d}
-            stroke={borderColor.hex()}
-            fill={fillColor.hex()}
-            strokeWidth={borderWidth}
-          />
-          
-          <AnimatedSvgPath
-            ref={ ref => this._secondArcSvgPath = ref }
-            d={d}
-            stroke={borderColor.hex()}
-            fill={fillColor.hex()}
-            strokeWidth={borderWidth}
-          />
-        </Svg>
-      </View>
+        <AnimatedSvgPath
+          ref={ ref => this._firstArcSvgPath = ref }
+          d={d}
+          stroke={borderColor.hex()}
+          fill={fillColor.hex()}
+          strokeWidth={borderWidth}
+        />
+        
+        <AnimatedSvgPath
+          ref={ ref => this._secondArcSvgPath = ref }
+          d={d}
+          stroke={borderColor.hex()}
+          fill={fillColor.hex()}
+          strokeWidth={borderWidth}
+        />
+      </Svg>
     )
   }
 
@@ -165,7 +163,7 @@ class Timer extends React.Component {
     if(progression.value > startAt + Math.abs(stopAt - startAt) * loopHalfAt) {
       this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: secondArcSvgPathD});
     } else {
-      this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: ''});
+      this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: 'M 0 0'});
     }
   }
  
@@ -265,7 +263,7 @@ class Timer extends React.Component {
 }
 
 const styles = StyleSheet.create({
-  timer: {
+  loop: {
     width: '100%',
     aspectRatio: 1,
     // borderWidth: 1,
@@ -273,4 +271,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default Timer
+export default Loop

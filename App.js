@@ -4,12 +4,12 @@ import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 import Color from 'color'
 
-import Timer from './Timer'
+import Loop from './Loop'
 
 var { heigh: windowHeight, width: windowWidth } = Dimensions.get('window');
 
-const TIMER_DURATION = 10000
-const TIMER_INTERVAL_DURATION = 0
+const TIMER_DURATION = 60000
+const TIMER_INTERVAL_DURATION = 4000
 const TIMER_SECOND_LOOP_DURATION = 2000
 const ITEM_HEIGHT = windowWidth
 const HAS_INTERVAL = false
@@ -132,7 +132,7 @@ class App extends React.Component {
   _keyExtractor = ({ id }) => `${id}`
 
   _renderTimer = ({ item: timer }) => (
-    <Timer
+    <Loop
       {...timer}
       width={15 / 100}
       loopRadius={3 / 10}
