@@ -6,23 +6,13 @@ import Color from 'color'
 
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
-const TIMER_WIDTH = 1.5 / 10
-const TIMER_WIDTH_DELTA = TIMER_WIDTH / 2
-const TIMER_RADIUS = 3 / 10
-const TIMER_START_POSITION = 2 / 10
-const TIMER_BORDER_WIDTH = .8 / 100
-
-// #5A7AED
-// #DEA950
-// #212121
-const TIMER_COLOR = Color('#5A7AED') 
-const TIMER_TRAIL_COLOR = TIMER_COLOR.lightness(8)
-
 class Timer extends React.Component {
   constructor(props) {
     super(props)
 
     const {
+      width,
+      borderWidth,
       progression: {
         startAt,
         stopAt,
@@ -48,7 +38,7 @@ class Timer extends React.Component {
 
     this.tailPositionDelta = animated.interpolate({
       inputRange:  [getStep(inStartAt),                  getStep(loopStartAt)],
-      outputRange: [-TIMER_WIDTH/2 - TIMER_BORDER_WIDTH, 1/2],
+      outputRange: [-width/2 - borderWidth, 1/2],
       extrapolate: 'clamp',
       easing: easingIn,
       useNativeDriver: true,
@@ -70,7 +60,7 @@ class Timer extends React.Component {
     })
     this.headPositionDelta = animated.interpolate({
       inputRange:  [getStep(outStartAt), getStep(1)],
-      outputRange: [0,                   3/6 + TIMER_WIDTH/2 ],
+      outputRange: [0,                   3/6 + width/2 ],
       extrapolate: 'clamp',
       easing: easingOut,
       useNativeDriver: true,
@@ -100,6 +90,16 @@ class Timer extends React.Component {
   }
 
   render() {
+    let {
+      fillColor,
+      borderColor,
+      borderWidth,
+    } = this.props
+
+    fillColor = Color(fillColor)
+    trailColor = fillColor.lightness(8)
+    borderColor = Color(borderColor)
+    
     const d = ''
 
     return (
@@ -110,27 +110,27 @@ class Timer extends React.Component {
         >
           <AnimatedSvgPath
             d={this._getFirstArcSvgPathD(3/6, Math.PI * 2)}
-            fill={TIMER_TRAIL_COLOR.hex()}
+            fill={trailColor.hex()}
           />
           <AnimatedSvgPath
             d={this._getSecondArcSvgPathD(Math.PI, 3/6)}
-            fill={TIMER_TRAIL_COLOR.hex()}
+            fill={trailColor.hex()}
           />
 
           <AnimatedSvgPath
             ref={ ref => this._firstArcSvgPath = ref }
             d={d}
-            stroke="black"
-            fill={TIMER_COLOR.hex()}
-            strokeWidth={TIMER_BORDER_WIDTH}
+            stroke={borderColor.hex()}
+            fill={fillColor.hex()}
+            strokeWidth={borderWidth}
           />
           
           <AnimatedSvgPath
             ref={ ref => this._secondArcSvgPath = ref }
             d={d}
-            stroke="black"
-            fill={TIMER_COLOR.hex()}
-            strokeWidth={TIMER_BORDER_WIDTH}
+            stroke={borderColor.hex()}
+            fill={fillColor.hex()}
+            strokeWidth={borderWidth}
           />
         </Svg>
       </View>
@@ -170,9 +170,15 @@ class Timer extends React.Component {
   }
  
   _getFirstArcSvgPathD = memoize((tailPositionDeltaValue, firstArcRotationProgressionValue) => {
+    const {
+      width,
+      xStartPosition,
+      loopRadius,
+    } = this.props
+
     return `
       M
-      ${TIMER_START_POSITION - TIMER_WIDTH_DELTA}
+      ${xStartPosition - (width / 2)}
       ${0}
 
       l
@@ -180,73 +186,79 @@ class Timer extends React.Component {
       ${tailPositionDeltaValue}
       
       a
-      ${TIMER_RADIUS + TIMER_WIDTH_DELTA}
-      ${TIMER_RADIUS + TIMER_WIDTH_DELTA}
+      ${loopRadius + (width / 2)}
+      ${loopRadius + (width / 2)}
       0 0 0
-      ${(+1 * Math.cos(firstArcRotationProgressionValue) + 1) * (TIMER_RADIUS + TIMER_WIDTH_DELTA)}
-      ${(-1 * Math.sin(firstArcRotationProgressionValue)) * (TIMER_RADIUS + TIMER_WIDTH_DELTA)}
+      ${(+1 * Math.cos(firstArcRotationProgressionValue) + 1) * (loopRadius + (width / 2))}
+      ${(-1 * Math.sin(firstArcRotationProgressionValue)) * (loopRadius + (width / 2))}
       
       a
-      ${TIMER_WIDTH_DELTA / 6}
-      ${TIMER_WIDTH_DELTA / 6}
+      ${(width / 2) / 6}
+      ${(width / 2) / 6}
       0 0 0
-      ${(+1 * Math.cos(firstArcRotationProgressionValue + Math.PI)) * (TIMER_WIDTH)}
-      ${(-1 * Math.sin(firstArcRotationProgressionValue + Math.PI)) * (TIMER_WIDTH)}
+      ${(+1 * Math.cos(firstArcRotationProgressionValue + Math.PI)) * (width)}
+      ${(-1 * Math.sin(firstArcRotationProgressionValue + Math.PI)) * (width)}
 
       A
-      ${TIMER_RADIUS - TIMER_WIDTH_DELTA}
-      ${TIMER_RADIUS - TIMER_WIDTH_DELTA}
+      ${loopRadius - (width / 2)}
+      ${loopRadius - (width / 2)}
       0 0 1
-      ${TIMER_START_POSITION + TIMER_WIDTH_DELTA}
+      ${xStartPosition + (width / 2)}
       ${tailPositionDeltaValue}
 
       L
-      ${TIMER_START_POSITION + TIMER_WIDTH_DELTA}
+      ${xStartPosition + (width / 2)}
       ${0}
 
       a
-      ${TIMER_WIDTH_DELTA / 6}
-      ${TIMER_WIDTH_DELTA / 6}
+      ${(width / 2) / 6}
+      ${(width / 2) / 6}
       0 0 0
-      ${- 2 * TIMER_WIDTH_DELTA}
+      ${- 2 * (width / 2)}
       ${0}
       Z
     `
   })
 
   _getSecondArcSvgPathD = memoize((secondArcRotationProgressionValue, headPositionDeltaValue) => {
+    const {
+      width,
+      xStartPosition,
+      loopRadius,
+    } = this.props
+
     return `
       M
-      ${TIMER_START_POSITION + TIMER_WIDTH_DELTA + 2 * TIMER_RADIUS}
+      ${xStartPosition + (width / 2) + 2 * loopRadius}
       ${1/2}
 
       a
-      ${TIMER_RADIUS + TIMER_WIDTH_DELTA}
-      ${TIMER_RADIUS + TIMER_WIDTH_DELTA}
+      ${loopRadius + (width / 2)}
+      ${loopRadius + (width / 2)}
       0 0 0
-      ${(1 * Math.cos(secondArcRotationProgressionValue) - 1) * (TIMER_RADIUS + TIMER_WIDTH_DELTA)}
-      ${(-1 * Math.sin(secondArcRotationProgressionValue)) * (TIMER_RADIUS + TIMER_WIDTH_DELTA)}
+      ${(1 * Math.cos(secondArcRotationProgressionValue) - 1) * (loopRadius + (width / 2))}
+      ${(-1 * Math.sin(secondArcRotationProgressionValue)) * (loopRadius + (width / 2))}
 
       l
       ${0}
       ${headPositionDeltaValue}
 
       a
-      ${TIMER_WIDTH_DELTA / 6}
-      ${TIMER_WIDTH_DELTA / 6}
+      ${(width / 2) / 6}
+      ${(width / 2) / 6}
       0 0 0
-      ${(+1 * Math.cos(secondArcRotationProgressionValue + Math.PI)) * (TIMER_WIDTH)}
-      ${(-1 * Math.sin(secondArcRotationProgressionValue + Math.PI)) * (TIMER_WIDTH)}
+      ${(+1 * Math.cos(secondArcRotationProgressionValue + Math.PI)) * (width)}
+      ${(-1 * Math.sin(secondArcRotationProgressionValue + Math.PI)) * (width)}
 
       l
       ${0}
       ${-headPositionDeltaValue}
 
       A
-      ${TIMER_RADIUS - TIMER_WIDTH_DELTA}
-      ${TIMER_RADIUS - TIMER_WIDTH_DELTA}
+      ${loopRadius - (width / 2)}
+      ${loopRadius - (width / 2)}
       0 0 1
-      ${TIMER_START_POSITION - TIMER_WIDTH_DELTA + 2 * TIMER_RADIUS}
+      ${xStartPosition - (width / 2) + 2 * loopRadius}
       ${1/2}
     `
   })

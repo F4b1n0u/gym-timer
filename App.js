@@ -8,8 +8,8 @@ import Timer from './Timer'
 
 var { heigh: windowHeight, width: windowWidth } = Dimensions.get('window');
 
-const TIMER_DURATION = 5000
-const TIMER_INTERVAL_DURATION = 1000
+const TIMER_DURATION = 10000
+const TIMER_INTERVAL_DURATION = 0
 const TIMER_SECOND_LOOP_DURATION = 2000
 const ITEM_HEIGHT = windowWidth
 const HAS_INTERVAL = false
@@ -65,8 +65,6 @@ class App extends React.Component {
       },
     ]
     
-    console.log(this.sequences)
-
     this.animation = Animated.timing(
       this.progressionTotal,
       {
@@ -87,7 +85,7 @@ class App extends React.Component {
 
     setTimeout(() => {
       this._startAnimation();
-    }, 250) 
+    }, 300) 
     
     this._interval = setInterval(() => {
       sequenceNode.scrollToItem({
@@ -136,6 +134,12 @@ class App extends React.Component {
   _renderTimer = ({ item: timer }) => (
     <Timer
       {...timer}
+      width={15 / 100}
+      loopRadius={3 / 10}
+      xStartPosition={2 / 10}
+      fillColor={`#5A7AED`}
+      borderWidth={8 / 1000}
+      borderColor={`#000000`}
     />
   )
 
