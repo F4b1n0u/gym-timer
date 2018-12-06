@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, SafeAreaView, Easing, FlatList } from 'react-native'
+import { StyleSheet, SafeAreaView, Easing, FlatList, Animated } from 'react-native'
 
 import Sequence from './Sequence'
 
@@ -29,15 +29,15 @@ class App extends React.Component {
         timers: timerIds.map((id, index) => ({
           id,
           durations: {
-            in: 500,
-            loopStart: 1000,
-            loopEnd: 1000,
-            out: 500,
+            in: 1000,
+            loopStart: 10000,
+            loopEnd: 6000,
+            out: 1500,
           },
           easings: {
               in: Easing.in(Easing.bounce),
-              loopStart: Easing.inOut(Easing.linear),
-              loopEnd: Easing.inOut(Easing.linear),
+              loopIn: Easing.inOut(Easing.linear),
+              loopOut: Easing.inOut(Easing.linear),
               out: Easing.inOut(Easing.linear),
           },
           transitions: {
@@ -47,8 +47,6 @@ class App extends React.Component {
         })),
       },
     ]
-    
-    this._sequences = {}
   }
 
   _renderSequence = ({ item: sequence }) => (
@@ -68,8 +66,7 @@ class App extends React.Component {
         style={styles.app}
       >
         <FlatList
-          scrollEventThrottle={16}
-          
+          scrollEventThrottle={8}
           style={styles.sequences}          
           horizontal
           data={this.sequences}

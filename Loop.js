@@ -1,8 +1,7 @@
 import React from 'react'
-import { StyleSheet, Animated, View, Easing } from 'react-native'
+import { StyleSheet, Animated, Easing } from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
-import Color from 'color'
 
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
@@ -13,193 +12,215 @@ class Loop extends React.Component {
     const {
       width,
       borderWidth,
-      easings: {
-        in: easingIn,
-        loopStart: easingLoopStart,
-        loopEnd: easingLoopEnd,
-        out: easingOut,
-      },
     } = props
 
-    this._progression = new Animated.Value(0)
+    this._headProgression = new Animated.Value(2)
+    this._tailProgression = new Animated.Value(1)
 
-    this.tailPositionDelta = this._progression.interpolate({
-      inputRange:  [0,                      1],
-      outputRange: [-width/2 - borderWidth, 1/2],
-      extrapolate: 'clamp',
-      easing: easingIn,
-      useNativeDriver: true,
-    })
+    const interpolations ={
+      in: {
+        inputRange:  [0,                      1],
+        outputRange: [-width/2 - borderWidth, 1/2],
+        extrapolate: 'clamp',
+      },
+      loopIn: {
+        inputRange:  [1,       2],
+        outputRange: [Math.PI, Math.PI * 2],
+        extrapolate: 'clamp',
+      },
+      loopOut: {
+        inputRange:  [2, 3],
+        outputRange: [0, Math.PI],
+        extrapolate: 'clamp',
+      },
+      out: {
+        inputRange:  [3, 4],
+        outputRange: [0, 3/6 + width/2 ],
+        extrapolate: 'clamp',
+      },
+    }
 
-    this.firstArcRotationProgression = this._progression.interpolate({
-      inputRange:  [1,       2],
-      outputRange: [Math.PI, Math.PI * 2],
-      extrapolate: 'clamp',
-      easing: easingLoopStart,
-      useNativeDriver: true,
-    })
+    this.headIn = this._headProgression.interpolate(interpolations.in)
+    this.headLoopIn = this._headProgression.interpolate(interpolations.loopIn)
+    this.headLoopOut = this._headProgression.interpolate(interpolations.loopOut)
+    this.headOut = this._headProgression.interpolate(interpolations.out)
 
-    this.secondArcRotationProgression = this._progression.interpolate({
-      inputRange:  [2, 3],
-      outputRange: [0, Math.PI],
-      extrapolate: 'clamp',
-      easing: easingLoopEnd,
-      useNativeDriver: true,
-    })
+    this.tailIn = this._tailProgression.interpolate(interpolations.in)
+    this.tailLoopIn = this._tailProgression.interpolate(interpolations.loopIn)
+    this.tailLoopOut = this._tailProgression.interpolate(interpolations.loopOut)
+    this.tailOut = this._tailProgression.interpolate(interpolations.out)
 
-    this.headPositionDelta = this._progression.interpolate({
-      inputRange:  [3, 4],
-      outputRange: [0, 3/6 + width/2 ],
-      extrapolate: 'clamp',
-      easing: easingOut,
-      useNativeDriver: true,
-    })
-
-    this._progression.addListener(this._setArcsSvgPathD)
+    this._headProgression.addListener(this._setPaths)
+    this._tailProgression.addListener(this._setPaths)
   }
   
   _startAnimation = () => {
     const {
       durations: {
         in: durationIn,
-        loopStart: durationLoopStart,
-        loopEnd: durationLoopEnd,
+        loopIn: durationLoopIn,
+        loopOut: durationLoopOut,
         out: durationOut,
+      },
+      easings: {
+        in: easingIn,
+        loopIn: easingLoopIn,
+        loopOut: easingLoopOut,
+        out: easingOut,
       },
     } = this.props
 
-    Animated.sequence([
-      Animated.timing(
-        this._progression,
-        {
-          toValue: 1,
-          duration: durationIn,
-          seNativeDriver: true,
-          isInteraction: false,
-        },
-      ),
-      Animated.timing(
-        this._progression,
-        {
-          toValue: 2,
-          duration: durationLoopStart,
-          seNativeDriver: true,
-          isInteraction: false,
-        },
-      ),
-      Animated.timing(
-        this._progression,
-        {
-          toValue: 3,
-          duration: durationLoopEnd,
-          seNativeDriver: true,
-          isInteraction: false,
-        },
-      ),
-      Animated.timing(
-        this._progression,
-        {
-          toValue: 4,
-          duration: durationOut,
-          seNativeDriver: true,
-          isInteraction: false,
-        },
-      )
-    ]).start(() => {
-      Animated.timing(
-        this._progression,
-        {
-          toValue: 0,
-          duration: 10000,
-          seNativeDriver: true,
-          isInteraction: false,
-        },
-      ).start()
-      // this._progression.setValue(0)
-      // this._startAnimation()
-    })
+    // // head
+    
+    // Animated.sequence([
+    //   Animated.timing(
+    //     this._headProgression,
+    //     {
+    //       toValue: 1,
+    //       duration: durationIn,
+    //       useNativeDriver: true,
+    //       easing: easingIn,
+    //     },
+    //   ),
+    //   Animated.timing(
+    //     this._headProgression,
+    //     {
+    //       toValue: 2,
+    //       duration: durationLoopIn,
+    //       useNativeDriver: true,
+    //       easing: easingLoopIn,
+    //     },
+    //   ),
+    //   Animated.timing(
+    //     this._headProgression,
+    //     {
+    //       toValue: 3,
+    //       duration: durationLoopOut,
+    //       useNativeDriver: true,
+    //       easing: easingLoopOut,
+    //     },
+    //   ),
+    //   Animated.timing(
+    //     this._headProgression,
+    //     {
+    //       toValue: 4,
+    //       duration: durationOut,
+    //       useNativeDriver: true,
+    //       easing: easingOut,
+    //     },
+    //   )
+    // ]).start(() => {
+    //   Animated.timing(
+    //     this._headProgression,
+    //     {
+    //       toValue: 0,
+    //       duration: 1000,
+    //       useNativeDriver: true,
+    //       easing: Easing.inOut(Easing.linear),
+    //     },
+    //   )
+    //   .start(this._startAnimation)
+    // })
+
+    // tail
+    Animated.timing(
+      this._tailProgression,
+      {
+        toValue: 4,
+        duration: 4000,
+        useNativeDriver: true,
+      },
+    ).start()
   }
 
   componentDidMount() {
-    this._setArcsSvgPathD({ value: this._progression.__getValue() })
+    this._setPaths()
 
-    this._startAnimation()
+    // this._startAnimation()
   }
 
   componentWillMount() {
-    this._progression.removeListener(this._setFirstArcSvgPathD);
+    this._headProgression.removeListener(this._setPaths);
+    this._tailProgression.removeListener(this._setPaths);
   }
 
   render() {
-    let {
+    const {
       fillColor,
       borderColor,
       borderWidth,
+      trailColor,
+      counting
     } = this.props
 
-    fillColor = Color(fillColor)
-    trailColor = fillColor.lightness(8)
-    borderColor = Color(borderColor)
-    
     const d = 'M 0 0'
-
+    
     return (
       <Svg
         style={styles.loop}
         viewBox={`0 0 1 1`}
       >
+        {trailColor && (
+          <React.Fragment>
+            <Svg.Path
+              d={this._getLoopInPath(3/6, Math.PI * 2)}
+              fill={trailColor}
+            />
+            <Svg.Path
+              d={this._getLoopOutPath(Math.PI, 3/6)}
+              fill={trailColor}
+            />
+          </React.Fragment>
+        )}
+        
         <AnimatedSvgPath
-          d={this._getFirstArcSvgPathD(3/6, Math.PI * 2)}
-          fill={trailColor.hex()}
-        />
-        <AnimatedSvgPath
-          d={this._getSecondArcSvgPathD(Math.PI, 3/6)}
-          fill={trailColor.hex()}
+          ref={ ref => this._loopOutElement = ref }
+          d={d}
+          stroke={borderColor}
+          fill={fillColor}
+          strokeWidth={borderWidth}
         />
 
         <AnimatedSvgPath
-          ref={ ref => this._firstArcSvgPath = ref }
+          ref={ ref => this._loopInElement = ref }
           d={d}
-          stroke={borderColor.hex()}
-          fill={fillColor.hex()}
-          strokeWidth={borderWidth}
-        />
-        
-        <AnimatedSvgPath
-          ref={ ref => this._secondArcSvgPath = ref }
-          d={d}
-          stroke={borderColor.hex()}
-          fill={fillColor.hex()}
+          stroke={borderColor}
+          fill={fillColor}
           strokeWidth={borderWidth}
         />
       </Svg>
     )
   }
 
-  _setArcsSvgPathD = (progression) => {
-    if (progression.value < 0 || progression.value > 4) {
-      return null
-    }
+  _setPaths = () => {
+    const _headProgression = this._headProgression.__getValue()
+    const _tailProgression = this._tailProgression.__getValue()
 
-    const tailPositionDeltaValue = this.tailPositionDelta.__getValue()
-    const firstArcRotationProgressionValue = this.firstArcRotationProgression.__getValue()
+    const headIn = this.headIn.__getValue()
+    const headLoopIn = this.headLoopIn.__getValue()
+    const headLoopOut = this.headLoopOut.__getValue()
+    const headOut = this.headOut.__getValue()
 
-    const secondArcRotationProgression = this.secondArcRotationProgression.__getValue()
-    const headPositionDelta = this.headPositionDelta.__getValue()
+    const tailIn = this.tailIn.__getValue()
+    const tailLoopIn = this.tailLoopIn.__getValue()
+    const tailLoopOut = this.tailLoopOut.__getValue()
+    const tailOut = this.tailOut.__getValue()
 
-    const firstArcSvgPathD= this._getFirstArcSvgPathD(tailPositionDeltaValue, firstArcRotationProgressionValue)
-    const secondArcSvgPathD= this._getSecondArcSvgPathD(secondArcRotationProgression, headPositionDelta)
+    const loopIntPath = this._getLoopInPath(headIn, headLoopIn,)
+    const secondArcSvgPathD = this._getLoopOutPath(headLoopOut, headOut)
 
-    this._firstArcSvgPath && this._firstArcSvgPath.setNativeProps({ d: firstArcSvgPathD});
+    // if(_headProgression <= 2) {
+      this._loopInElement && this._loopInElement.setNativeProps({ d: loopIntPath});
+    // }
     
-    if(progression.value > 2) {
-      this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: secondArcSvgPathD});
+    if(_headProgression >= 2) {
+      this._loopOutElement && this._loopOutElement.setNativeProps({ d: secondArcSvgPathD});
     } else {
-      this._secondArcSvgPath && this._secondArcSvgPath.setNativeProps({ d: 'M 0 0'});
+      this._loopOutElement && this._loopOutElement.setNativeProps({ d: 'M 0 0'});
     }
   }
  
-  _getFirstArcSvgPathD = memoize((tailPositionDeltaValue, firstArcRotationProgressionValue) => {
+  _getLoopInPath = memoize((headIn, headLoopIn) => {
     const {
       width,
       xStartPosition,
@@ -213,28 +234,28 @@ class Loop extends React.Component {
 
       l
       ${0}
-      ${tailPositionDeltaValue}
+      ${headIn}
       
       a
       ${loopRadius + (width / 2)}
       ${loopRadius + (width / 2)}
       0 0 0
-      ${(+1 * Math.cos(firstArcRotationProgressionValue) + 1) * (loopRadius + (width / 2))}
-      ${(-1 * Math.sin(firstArcRotationProgressionValue)) * (loopRadius + (width / 2))}
+      ${(+1 * Math.cos(headLoopIn) + 1) * (loopRadius + (width / 2))}
+      ${(-1 * Math.sin(headLoopIn)) * (loopRadius + (width / 2))}
       
       a
       ${(width / 2) / 6}
       ${(width / 2) / 6}
       0 0 0
-      ${(+1 * Math.cos(firstArcRotationProgressionValue + Math.PI)) * (width)}
-      ${(-1 * Math.sin(firstArcRotationProgressionValue + Math.PI)) * (width)}
-
+      ${(+1 * Math.cos(headLoopIn + Math.PI)) * (width)}
+      ${(-1 * Math.sin(headLoopIn + Math.PI)) * (width)}
+      
       A
       ${loopRadius - (width / 2)}
       ${loopRadius - (width / 2)}
       0 0 1
       ${xStartPosition + (width / 2)}
-      ${tailPositionDeltaValue}
+      ${headIn}
 
       L
       ${xStartPosition + (width / 2)}
@@ -250,7 +271,7 @@ class Loop extends React.Component {
     `
   })
 
-  _getSecondArcSvgPathD = memoize((secondArcRotationProgressionValue, headPositionDeltaValue) => {
+  _getLoopOutPath = memoize((headLoopOut, headOut) => {
     const {
       width,
       xStartPosition,
@@ -261,28 +282,28 @@ class Loop extends React.Component {
       M
       ${xStartPosition + (width / 2) + 2 * loopRadius}
       ${1/2}
-
+      
       a
       ${loopRadius + (width / 2)}
       ${loopRadius + (width / 2)}
       0 0 0
-      ${(1 * Math.cos(secondArcRotationProgressionValue) - 1) * (loopRadius + (width / 2))}
-      ${(-1 * Math.sin(secondArcRotationProgressionValue)) * (loopRadius + (width / 2))}
+      ${(1 * Math.cos(headLoopOut) - 1) * (loopRadius + (width / 2))}
+      ${(-1 * Math.sin(headLoopOut)) * (loopRadius + (width / 2))}
 
       l
       ${0}
-      ${headPositionDeltaValue}
+      ${headOut}
 
       a
       ${(width / 2) / 6}
       ${(width / 2) / 6}
       0 0 0
-      ${(+1 * Math.cos(secondArcRotationProgressionValue + Math.PI)) * (width)}
-      ${(-1 * Math.sin(secondArcRotationProgressionValue + Math.PI)) * (width)}
+      ${(+1 * Math.cos(headLoopOut + Math.PI)) * (width)}
+      ${(-1 * Math.sin(headLoopOut + Math.PI)) * (width)}
 
       l
       ${0}
-      ${-headPositionDeltaValue}
+      ${-headOut}
 
       A
       ${loopRadius - (width / 2)}
