@@ -3,6 +3,9 @@ import { StyleSheet, Animated, Easing } from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 
+const HEAD = 0
+const TAIL = 0
+
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
 class Loop extends React.Component {
@@ -14,29 +17,33 @@ class Loop extends React.Component {
       borderWidth,
     } = props
 
-    this._headProgression = new Animated.Value(2)
-    this._tailProgression = new Animated.Value(1)
+    this._headProgression = new Animated.Value(HEAD)
+    this._tailProgression = new Animated.Value(TAIL)
 
-    const interpolations ={
+    const interpolations = {
       in: {
         inputRange:  [0,                      1],
         outputRange: [-width/2 - borderWidth, 1/2],
         extrapolate: 'clamp',
+        easing: Easing.inOut(Easing.linear)
       },
       loopIn: {
         inputRange:  [1,       2],
         outputRange: [Math.PI, Math.PI * 2],
         extrapolate: 'clamp',
+        easing: Easing.inOut(Easing.linear)
       },
       loopOut: {
         inputRange:  [2, 3],
         outputRange: [0, Math.PI],
         extrapolate: 'clamp',
+        easing: Easing.inOut(Easing.linear)
       },
       out: {
         inputRange:  [3, 4],
         outputRange: [0, 3/6 + width/2 ],
         extrapolate: 'clamp',
+        easing: Easing.inOut(Easing.linear)
       },
     }
 
@@ -72,71 +79,63 @@ class Loop extends React.Component {
 
     // // head
     
-    // Animated.sequence([
-    //   Animated.timing(
-    //     this._headProgression,
-    //     {
-    //       toValue: 1,
-    //       duration: durationIn,
-    //       useNativeDriver: true,
-    //       easing: easingIn,
-    //     },
-    //   ),
-    //   Animated.timing(
-    //     this._headProgression,
-    //     {
-    //       toValue: 2,
-    //       duration: durationLoopIn,
-    //       useNativeDriver: true,
-    //       easing: easingLoopIn,
-    //     },
-    //   ),
-    //   Animated.timing(
-    //     this._headProgression,
-    //     {
-    //       toValue: 3,
-    //       duration: durationLoopOut,
-    //       useNativeDriver: true,
-    //       easing: easingLoopOut,
-    //     },
-    //   ),
-    //   Animated.timing(
-    //     this._headProgression,
-    //     {
-    //       toValue: 4,
-    //       duration: durationOut,
-    //       useNativeDriver: true,
-    //       easing: easingOut,
-    //     },
-    //   )
-    // ]).start(() => {
-    //   Animated.timing(
-    //     this._headProgression,
-    //     {
-    //       toValue: 0,
-    //       duration: 1000,
-    //       useNativeDriver: true,
-    //       easing: Easing.inOut(Easing.linear),
-    //     },
-    //   )
-    //   .start(this._startAnimation)
-    // })
-
-    // tail
-    Animated.timing(
-      this._tailProgression,
-      {
-        toValue: 4,
-        duration: 4000,
-        useNativeDriver: true,
-      },
-    ).start()
+    this._tailProgression.setValue(0)
+    this._headProgression.setValue(0)
+    
+    Animated.sequence([
+      Animated.timing(
+        this._headProgression,
+        {
+          toValue: 4,
+          duration: 1000,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.linear),
+        },
+      ),
+      Animated.delay(1000),
+      Animated.timing(
+        this._tailProgression,
+        {
+          toValue: 1,
+          duration: durationIn,
+          useNativeDriver: true,
+          easing: easingIn,
+        },
+      ),
+      Animated.timing(
+        this._tailProgression,
+        {
+          toValue: 2,
+          duration: durationLoopIn,
+          useNativeDriver: true,
+          easing: easingLoopIn,
+        },
+      ),
+      Animated.timing(
+        this._tailProgression,
+        {
+          toValue: 3,
+          duration: durationLoopOut,
+          useNativeDriver: true,
+          easing: easingLoopOut,
+        },
+      ),
+      Animated.timing(
+        this._tailProgression,
+        {
+          toValue: 4,
+          duration: durationOut,
+          useNativeDriver: true,
+          easing: easingOut,
+        },
+      )
+    ]).start(this._startAnimation)
   }
 
   componentDidMount() {
     this._setPaths()
 
-    // this._startAnimation()
+    this._startAnimation()
   }
 
   componentWillMount() {
@@ -163,11 +162,11 @@ class Loop extends React.Component {
         {trailColor && (
           <React.Fragment>
             <Svg.Path
-              d={this._getLoopInPath(3/6, Math.PI * 2)}
+              d={this._getLoopInPath(0, 1/2, Math.PI * 2, Math.PI * 2)}
               fill={trailColor}
             />
             <Svg.Path
-              d={this._getLoopOutPath(Math.PI, 3/6)}
+              d={this._getLoopOutPath(Math.PI, 1/2, 1/2, 1)}
               fill={trailColor}
             />
           </React.Fragment>
@@ -193,8 +192,8 @@ class Loop extends React.Component {
   }
 
   _setPaths = () => {
-    const _headProgression = this._headProgression.__getValue()
-    const _tailProgression = this._tailProgression.__getValue()
+    const headProgression = this._headProgression.__getValue()
+    const tailProgression = this._tailProgression.__getValue()
 
     const headIn = this.headIn.__getValue()
     const headLoopIn = this.headLoopIn.__getValue()
@@ -206,112 +205,187 @@ class Loop extends React.Component {
     const tailLoopOut = this.tailLoopOut.__getValue()
     const tailOut = this.tailOut.__getValue()
 
-    const loopIntPath = this._getLoopInPath(headIn, headLoopIn,)
-    const secondArcSvgPathD = this._getLoopOutPath(headLoopOut, headOut)
+    const loopIntPath = this._getLoopInPath(tailIn, headIn, tailLoopIn, headLoopIn)
+    const secondArcSvgPathD = this._getLoopOutPath(tailLoopOut, headLoopOut, tailOut, headOut)
 
-    // if(_headProgression <= 2) {
+    if(headProgression <= 2 || tailProgression <=2) {
       this._loopInElement && this._loopInElement.setNativeProps({ d: loopIntPath});
-    // }
+    } else {
+      this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' });
+    }
     
-    if(_headProgression >= 2) {
+    if(headProgression >= 2 || tailProgression >= 2) {
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: secondArcSvgPathD});
     } else {
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: 'M 0 0'});
     }
   }
  
-  _getLoopInPath = memoize((headIn, headLoopIn) => {
+  _getLoopInPath = memoize((tailIn, headIn, tailLoop, headLoop) => {
     const {
       width,
       xStartPosition,
       loopRadius,
     } = this.props
 
-    return `
-      M
-      ${xStartPosition - (width / 2)}
-      ${0}
+    const headloopInt = {
+      x: xStartPosition + (width / 2) + (Math.cos(headLoop) + 1) * (loopRadius - (width / 2)),
+      y: headIn - (1 * Math.sin(headLoop)) * (loopRadius - (width / 2)),
+    }
+    const tailLoopInt = {
+      x: xStartPosition + (width / 2) + ((Math.cos(tailLoop) + 1) * (loopRadius - (width / 2))),
+      y: headIn - (1 * Math.sin(tailLoop)) * (loopRadius - (width / 2)),
+    }
+    const tailInInt = {
+      dx: 0,
+      dy: -1/2 + tailIn,
+    }
+    const tailInExt = {
+      dx: 0,
+      dy: 1/2 - tailIn,
+    }
 
-      l
-      ${0}
-      ${headIn}
-      
-      a
-      ${loopRadius + (width / 2)}
-      ${loopRadius + (width / 2)}
-      0 0 0
-      ${(+1 * Math.cos(headLoopIn) + 1) * (loopRadius + (width / 2))}
-      ${(-1 * Math.sin(headLoopIn)) * (loopRadius + (width / 2))}
-      
-      a
-      ${(width / 2) / 6}
-      ${(width / 2) / 6}
-      0 0 0
-      ${(+1 * Math.cos(headLoopIn + Math.PI)) * (width)}
-      ${(-1 * Math.sin(headLoopIn + Math.PI)) * (width)}
+    const tailLoopExt = {
+      dx: (-1 * Math.cos(tailLoop + Math.PI)) * (width),
+      dy: (+1 * Math.sin(tailLoop + Math.PI)) * (width)
+    }
+    const headloopExt = {
+      x: xStartPosition - (width / 2) + ((Math.cos(headLoop) + 1) * (loopRadius + (width / 2))),
+      y: headIn - (1 * Math.sin(headLoop)) * (loopRadius + (width / 2)),
+    }
+    
+    const path = `
+      M
+      ${headloopInt.x}
+      ${headloopInt.y}
       
       A
       ${loopRadius - (width / 2)}
       ${loopRadius - (width / 2)}
       0 0 1
-      ${xStartPosition + (width / 2)}
-      ${headIn}
+      ${tailLoopInt.x}
+      ${tailLoopInt.y}
 
-      L
-      ${xStartPosition + (width / 2)}
-      ${0}
+      l
+      ${tailInInt.dx}
+      ${tailInInt.dy}
 
       a
       ${(width / 2) / 6}
       ${(width / 2) / 6}
       0 0 0
-      ${- 2 * (width / 2)}
-      ${0}
-      Z
+      ${tailLoopExt.dx}
+      ${tailLoopExt.dy}
+
+      l
+      ${tailInExt.dx}
+      ${tailInExt.dy}
+
+      A
+      ${loopRadius + (width / 2)}
+      ${loopRadius + (width / 2)}
+      0 0 0
+      ${headloopExt.x}
+      ${headloopExt.y}
+    `
+
+    const cap = headLoop < 2 * Math.PI ? `
+      A
+      ${(width / 2) / 6}
+      ${(width / 2) / 6}
+      0 0 0
+      ${headloopInt.x}
+      ${headloopInt.y}
+    ` : ''
+
+    return `
+      ${path}
+      ${cap}
     `
   })
 
-  _getLoopOutPath = memoize((headLoopOut, headOut) => {
+  _getLoopOutPath = memoize((tailLoop, headLoop, tailOut, headOut ) => {
     const {
       width,
       xStartPosition,
       loopRadius,
     } = this.props
+    
+    center = {
+      x: xStartPosition + loopRadius,
+      y: 1/2,
+    }
 
-    return `
+    const tailLoopExt = { // OK
+      x: center.x + Math.cos(tailLoop) * (loopRadius + (width / 2)),
+      y: center.y + -1 * Math.sin(tailLoop) * (loopRadius + (width / 2)) + tailOut,
+    }
+    const headLoopExt = {
+      x: center.x + Math.cos(headLoop) * (loopRadius + (width / 2)),
+      y: center.y + -1 * Math.sin(headLoop) * (loopRadius + (width / 2)) + tailOut,
+    }
+    const headOutExt = {
+      x: headLoopExt.x,
+      y: headLoopExt.y + headOut,
+    }
+    const headOutInt = {
+      dx:  1 * Math.cos(headLoop + Math.PI) * (width),
+      dy: -1 * Math.sin(headLoop + Math.PI) * (width),
+    }
+    const headLoopInt = {
+      x: center.x + Math.cos(headLoop) * (loopRadius - (width / 2)),
+      y: center.y + -1 * Math.sin(headLoop) * (loopRadius - (width / 2)) + tailOut,
+    }
+    const tailLoopInt = {
+      x: center.x + Math.cos(tailLoop) * (loopRadius - (width / 2)),
+      y: center.y + -1 * Math.sin(tailLoop) * (loopRadius - (width / 2)) + tailOut,
+    }
+
+    const path = `
       M
-      ${xStartPosition + (width / 2) + 2 * loopRadius}
-      ${1/2}
-      
-      a
+      ${tailLoopExt.x}
+      ${tailLoopExt.y}
+
+      A
       ${loopRadius + (width / 2)}
       ${loopRadius + (width / 2)}
       0 0 0
-      ${(1 * Math.cos(headLoopOut) - 1) * (loopRadius + (width / 2))}
-      ${(-1 * Math.sin(headLoopOut)) * (loopRadius + (width / 2))}
+      ${headLoopExt.x}
+      ${headLoopExt.y}
 
-      l
-      ${0}
-      ${headOut}
+      L
+      ${headOutExt.x}
+      ${headOutExt.y}
 
       a
       ${(width / 2) / 6}
       ${(width / 2) / 6}
       0 0 0
-      ${(+1 * Math.cos(headLoopOut + Math.PI)) * (width)}
-      ${(-1 * Math.sin(headLoopOut + Math.PI)) * (width)}
+      ${headOutInt.dx}
+      ${headOutInt.dy}
 
-      l
-      ${0}
-      ${-headOut}
+      L
+      ${headLoopInt.x}
+      ${headLoopInt.y}
 
       A
       ${loopRadius - (width / 2)}
       ${loopRadius - (width / 2)}
       0 0 1
-      ${xStartPosition - (width / 2) + 2 * loopRadius}
-      ${1/2}
+      ${tailLoopInt.x}
+      ${tailLoopInt.y}
+
+      A
+      ${(width / 2) / 6}
+      ${(width / 2) / 6}
+      0 0 0
+      ${tailLoopExt.x}
+      ${tailLoopExt.y}
     `
+
+    // console.log(path)
+
+    return path
   })
 }
 

@@ -29,9 +29,9 @@ class App extends React.Component {
         timers: timerIds.map((id, index) => ({
           id,
           durations: {
-            in: 1000,
-            loopStart: 10000,
-            loopEnd: 6000,
+            in: 1500,
+            loopIn: 10000,
+            loopOut: 6000,
             out: 1500,
           },
           easings: {

@@ -24,8 +24,8 @@ class Sequence extends React.Component {
       xStartPosition={2 / 10}
       borderWidth={8 / 1000}
       fillColor={Color(`#5A7AED`).hex()}
-      trailColor={Color(`#5A7AED`).lightness(10).hex()}
-      borderColor={`#000000`}
+      // trailColor={Color(`#5A7AED`).lightness(10).hex()}
+      borderColor={`#fff`}
     />
   )
 
