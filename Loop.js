@@ -149,7 +149,6 @@ class Loop extends React.Component {
       borderColor,
       borderWidth,
       trailColor,
-      counting
     } = this.props
 
     const d = 'M 0 0'
@@ -162,11 +161,11 @@ class Loop extends React.Component {
         {trailColor && (
           <React.Fragment>
             <Svg.Path
-              d={this._getLoopInPath(0, 1/2, Math.PI * 2, Math.PI * 2)}
+              d={this._getWholeInPath(0, 0.5, Math.PI, 2 * Math.PI)}
               fill={trailColor}
             />
             <Svg.Path
-              d={this._getLoopOutPath(Math.PI, 1/2, 1/2, 1)}
+              d={this._getWholeOutPath(0, Math.PI, 0, 1/2)}
               fill={trailColor}
             />
           </React.Fragment>
@@ -205,23 +204,23 @@ class Loop extends React.Component {
     const tailLoopOut = this.tailLoopOut.__getValue()
     const tailOut = this.tailOut.__getValue()
 
-    const loopIntPath = this._getLoopInPath(tailIn, headIn, tailLoopIn, headLoopIn)
-    const secondArcSvgPathD = this._getLoopOutPath(tailLoopOut, headLoopOut, tailOut, headOut)
+    const wholeIntPath = this._getWholeInPath(tailIn, headIn, tailLoopIn, headLoopIn)
+    const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut, tailOut, headOut)
 
     if(headProgression <= 2 || tailProgression <=2) {
-      this._loopInElement && this._loopInElement.setNativeProps({ d: loopIntPath});
+      this._loopInElement && this._loopInElement.setNativeProps({ d: wholeIntPath});
     } else {
       this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' });
     }
     
     if(headProgression >= 2 || tailProgression >= 2) {
-      this._loopOutElement && this._loopOutElement.setNativeProps({ d: secondArcSvgPathD});
+      this._loopOutElement && this._loopOutElement.setNativeProps({ d: wholeOutPath});
     } else {
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: 'M 0 0'});
     }
   }
  
-  _getLoopInPath = memoize((tailIn, headIn, tailLoop, headLoop) => {
+  _getWholeInPath = memoize((tailIn, headIn, tailLoop, headLoop) => {
     const {
       width,
       xStartPosition,
@@ -304,7 +303,7 @@ class Loop extends React.Component {
     `
   })
 
-  _getLoopOutPath = memoize((tailLoop, headLoop, tailOut, headOut ) => {
+  _getWholeOutPath = memoize((tailLoop, headLoop, tailOut, headOut) => {
     const {
       width,
       xStartPosition,
@@ -382,8 +381,6 @@ class Loop extends React.Component {
       ${tailLoopExt.x}
       ${tailLoopExt.y}
     `
-
-    // console.log(path)
 
     return path
   })

@@ -30,13 +30,13 @@ class App extends React.Component {
           id,
           durations: {
             in: 1500,
-            loopIn: 10000,
-            loopOut: 6000,
-            out: 1500,
+            loopIn: 6000,
+            loopOut: 4000,
+            out: 500,
           },
           easings: {
               in: Easing.in(Easing.bounce),
-              loopIn: Easing.inOut(Easing.linear),
+              loopIn: Easing.in(Easing.linear), // if loopIn < loopOut
               loopOut: Easing.inOut(Easing.linear),
               out: Easing.inOut(Easing.linear),
           },
