@@ -3,9 +3,6 @@ import { StyleSheet, Animated, Easing } from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 
-const HEAD = 0
-const TAIL = 0
-
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
 class Loop extends React.Component {
@@ -15,132 +12,63 @@ class Loop extends React.Component {
     const {
       width,
       borderWidth,
+      headProgression,
+      tailProgression,
     } = props
-
-    this._headProgression = new Animated.Value(HEAD)
-    this._tailProgression = new Animated.Value(TAIL)
 
     const interpolations = {
       in: {
-        inputRange:  [0,                      1],
-        outputRange: [-width/2 - borderWidth, 1/2],
+        inputRange:  [this._getStep(0), this._getStep(1)],
+        outputRange: [0,                1/2],
         extrapolate: 'clamp',
         easing: Easing.inOut(Easing.linear)
       },
       loopIn: {
-        inputRange:  [1,       2],
-        outputRange: [Math.PI, Math.PI * 2],
+        inputRange:  [this._getStep(1), this._getStep(2)],
+        outputRange: [Math.PI,    Math.PI * 2],
         extrapolate: 'clamp',
         easing: Easing.inOut(Easing.linear)
       },
       loopOut: {
-        inputRange:  [2, 3],
-        outputRange: [0, Math.PI],
+        inputRange:  [this._getStep(2), this._getStep(3)],
+        outputRange: [0,          Math.PI],
         extrapolate: 'clamp',
         easing: Easing.inOut(Easing.linear)
       },
       out: {
-        inputRange:  [3, 4],
-        outputRange: [0, 3/6 + width/2 ],
+        inputRange:  [this._getStep(3), this._getStep(4)],
+        outputRange: [0,                3/6 + width/2 + borderWidth ],
         extrapolate: 'clamp',
         easing: Easing.inOut(Easing.linear)
       },
     }
 
-    this.headIn = this._headProgression.interpolate(interpolations.in)
-    this.headLoopIn = this._headProgression.interpolate(interpolations.loopIn)
-    this.headLoopOut = this._headProgression.interpolate(interpolations.loopOut)
-    this.headOut = this._headProgression.interpolate(interpolations.out)
+    this.headIn = headProgression.interpolate(interpolations.in)
+    this.headLoopIn = headProgression.interpolate(interpolations.loopIn)
+    this.headLoopOut = headProgression.interpolate(interpolations.loopOut)
+    this.headOut = headProgression.interpolate(interpolations.out)
 
-    this.tailIn = this._tailProgression.interpolate(interpolations.in)
-    this.tailLoopIn = this._tailProgression.interpolate(interpolations.loopIn)
-    this.tailLoopOut = this._tailProgression.interpolate(interpolations.loopOut)
-    this.tailOut = this._tailProgression.interpolate(interpolations.out)
+    this.tailIn = tailProgression.interpolate(interpolations.in)
+    this.tailLoopIn = tailProgression.interpolate(interpolations.loopIn)
+    this.tailLoopOut = tailProgression.interpolate(interpolations.loopOut)
+    this.tailOut = tailProgression.interpolate(interpolations.out)
 
-    this._headProgression.addListener(this._setPaths)
-    this._tailProgression.addListener(this._setPaths)
-  }
-  
-  _startAnimation = () => {
-    const {
-      durations: {
-        in: durationIn,
-        loopIn: durationLoopIn,
-        loopOut: durationLoopOut,
-        out: durationOut,
-      },
-      easings: {
-        in: easingIn,
-        loopIn: easingLoopIn,
-        loopOut: easingLoopOut,
-        out: easingOut,
-      },
-    } = this.props
-
-    // // head
-    
-    this._tailProgression.setValue(0)
-    this._headProgression.setValue(0)
-    
-    Animated.sequence([
-      Animated.timing(
-        this._headProgression,
-        {
-          toValue: 4,
-          duration: 1000,
-          useNativeDriver: true,
-          easing: Easing.inOut(Easing.linear),
-        },
-      ),
-      Animated.delay(1000),
-      Animated.timing(
-        this._tailProgression,
-        {
-          toValue: 1,
-          duration: durationIn,
-          useNativeDriver: true,
-          easing: easingIn,
-        },
-      ),
-      Animated.timing(
-        this._tailProgression,
-        {
-          toValue: 2,
-          duration: durationLoopIn,
-          useNativeDriver: true,
-          easing: easingLoopIn,
-        },
-      ),
-      Animated.timing(
-        this._tailProgression,
-        {
-          toValue: 3,
-          duration: durationLoopOut,
-          useNativeDriver: true,
-          easing: easingLoopOut,
-        },
-      ),
-      Animated.timing(
-        this._tailProgression,
-        {
-          toValue: 4,
-          duration: durationOut,
-          useNativeDriver: true,
-          easing: easingOut,
-        },
-      )
-    ]).start(this._startAnimation)
-  }
-
-  componentDidMount() {
-    this._setPaths()
-
-    this._startAnimation()
+    headProgression.addListener(this._setPaths)
+    tailProgression.addListener(this._setPaths)
   }
 
   componentWillMount() {
-    this._headProgression.removeListener(this._setPaths);
-    this._tailProgression.removeListener(this._setPaths);
+    const {
+      headProgression,
+      tailProgression,
+    } = this.props
+    
+    headProgression.removeListener(this._setPaths);
+    tailProgression.removeListener(this._setPaths);
+  }
+
+  componentDidMount() {
+    this._setPaths('whatever', true)
   }
 
   render() {
@@ -190,9 +118,34 @@ class Loop extends React.Component {
     )
   }
 
-  _setPaths = () => {
-    const headProgression = this._headProgression.__getValue()
-    const tailProgression = this._tailProgression.__getValue()
+  _getStep = (ratio) => {
+    const {
+      startsAt,
+      endsAt,
+    } = this.props
+
+    return startsAt + ratio / 4 * Math.abs(endsAt - startsAt)
+  }
+
+  _setPaths = (value, force=false) => {
+    let {
+      headProgression,
+      tailProgression,
+      startsAt,
+      endsAt,
+    } = this.props
+
+    
+    headProgression = headProgression.__getValue()
+    tailProgression = tailProgression.__getValue()
+
+    if (
+      !force &&
+      (tailProgression < startsAt || tailProgression > endsAt) &&
+      (headProgression < startsAt || headProgression > endsAt)
+    ) {
+      return
+    }
 
     const headIn = this.headIn.__getValue()
     const headLoopIn = this.headLoopIn.__getValue()
@@ -207,13 +160,13 @@ class Loop extends React.Component {
     const wholeIntPath = this._getWholeInPath(tailIn, headIn, tailLoopIn, headLoopIn)
     const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut, tailOut, headOut)
 
-    if(headProgression <= 2 || tailProgression <=2) {
+    if(headProgression <= this._getStep(2) || tailProgression <= this._getStep(2)) {
       this._loopInElement && this._loopInElement.setNativeProps({ d: wholeIntPath});
     } else {
       this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' });
     }
     
-    if(headProgression >= 2 || tailProgression >= 2) {
+    if(headProgression >= this._getStep(2) || tailProgression >= this._getStep(2)) {
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: wholeOutPath});
     } else {
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: 'M 0 0'});
