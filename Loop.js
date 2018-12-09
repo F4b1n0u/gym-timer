@@ -23,6 +23,7 @@ class Loop extends React.Component {
         loopIn: easingLoopIn,
         loopOut: easingLoopOut,
         out: easingOut,
+        joinHack,
       },
     } = props
 
@@ -32,7 +33,7 @@ class Loop extends React.Component {
 
     const interpolations = {
       in: {
-        inputRange:  [this._getStep(0), this._getStep(1)],
+        inputRange:  [this._getStep(0 - joinHack), this._getStep(1)],
         outputRange: [0,                1/2],
         extrapolate: 'clamp',
         easing: easingIn,
