@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Animated, Easing } from 'react-native'
+import { StyleSheet, Animated, Easing, Text, View } from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 
@@ -14,32 +14,46 @@ class Loop extends React.Component {
       borderWidth,
       headProgression,
       tailProgression,
+      durations: {
+        loopIn,
+        loopOut,
+      },
+      easings: {
+        in: easingIn,
+        loopIn: easingLoopIn,
+        loopOut: easingLoopOut,
+        out: easingOut,
+      },
     } = props
+
+    this.state = {
+      countdown: (loopIn + loopOut) / 1000,
+    }
 
     const interpolations = {
       in: {
         inputRange:  [this._getStep(0), this._getStep(1)],
         outputRange: [0,                1/2],
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        easing: easingIn,
       },
       loopIn: {
         inputRange:  [this._getStep(1), this._getStep(2)],
         outputRange: [Math.PI,    Math.PI * 2],
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        easing: easingLoopIn,
       },
       loopOut: {
         inputRange:  [this._getStep(2), this._getStep(3)],
         outputRange: [0,          Math.PI],
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        easing: easingLoopOut,
       },
       out: {
         inputRange:  [this._getStep(3), this._getStep(4)],
         outputRange: [0,                3/6 + width/2 + borderWidth ],
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        easing: easingOut,
       },
     }
 
@@ -55,6 +69,7 @@ class Loop extends React.Component {
 
     headProgression.addListener(this._setPaths)
     tailProgression.addListener(this._setPaths)
+    tailProgression.addListener(this._setCountdown)
   }
 
   componentWillMount() {
@@ -79,42 +94,60 @@ class Loop extends React.Component {
       trailColor,
     } = this.props
 
+    const {
+      countdown,
+    } = this.state
+
     const d = 'M 0 0'
     
     return (
-      <Svg
-        style={styles.loop}
-        viewBox={`0 0 1 1`}
+      <View
+        style={styles.timer}
       >
-        {trailColor && (
-          <React.Fragment>
-            <Svg.Path
-              d={this._getWholeInPath(0, 0.5, Math.PI, 2 * Math.PI)}
-              fill={trailColor}
-            />
-            <Svg.Path
-              d={this._getWholeOutPath(0, Math.PI, 0, 1/2)}
-              fill={trailColor}
-            />
-          </React.Fragment>
-        )}
-        
-        <AnimatedSvgPath
-          ref={ ref => this._loopOutElement = ref }
-          d={d}
-          stroke={borderColor}
-          fill={fillColor}
-          strokeWidth={borderWidth}
-        />
+        <Svg
+          style={styles.loop}
+          viewBox={`0 0 1 1`}
+        >
+          {trailColor && (
+            <React.Fragment>
+              <Svg.Path
+                d={this._getWholeInPath(0, 0.5, Math.PI, 2 * Math.PI)}
+                fill={trailColor}
+                strokeWidth={borderWidth}
+                stroke={borderColor}
+              />
+              <Svg.Path
+                d={this._getWholeOutPath(0, Math.PI, 0, 1/2)}
+                fill={trailColor}
+                strokeWidth={borderWidth}
+                stroke={borderColor}
+              />
+            </React.Fragment>
+          )}
+          
+          <AnimatedSvgPath
+            ref={ ref => this._loopOutElement = ref }
+            d={d}
+            stroke={borderColor}
+            fill={fillColor}
+            strokeWidth={borderWidth}
+          />
 
-        <AnimatedSvgPath
-          ref={ ref => this._loopInElement = ref }
-          d={d}
-          stroke={borderColor}
-          fill={fillColor}
-          strokeWidth={borderWidth}
-        />
-      </Svg>
+          <AnimatedSvgPath
+            ref={ ref => this._loopInElement = ref }
+            d={d}
+            stroke={borderColor}
+            fill={fillColor}
+            strokeWidth={borderWidth}
+          />
+        </Svg>
+
+        <Text
+          style={styles.countdown}
+        >
+          {countdown}
+        </Text>
+      </View>
     )
   }
 
@@ -173,6 +206,46 @@ class Loop extends React.Component {
     }
   }
  
+  _setCountdown = ({ value: tailProgression }) => {
+    const {
+      durations: {
+        loopIn: loopInDuration,
+        loopOut: loopOutDuration,
+      },
+      startsAt,
+    } = this.props
+
+    const {
+      countdown,
+    } = this.state
+
+    const relativeTailProgression = tailProgression - startsAt
+
+    const duration = loopInDuration + loopOutDuration + 1000
+    let relativeProgression
+    let secondRate
+
+    if (relativeTailProgression > .25 && relativeTailProgression < .5) {
+      const relativeProgression = (relativeTailProgression - .25) * 4  // (0 -> 1)
+      secondRate = loopInDuration * relativeProgression                // (0 -> loopInDuration)
+
+      this.setState({
+        countdown: Math.floor((duration - secondRate) / 1000)
+      })
+    } else if (relativeTailProgression > .5 && relativeTailProgression < .75) {
+      const relativeProgression = (relativeTailProgression - .5) * 4  // (0 -> 1)
+      secondRate = loopOutDuration * relativeProgression                  // (0 -> loopInDuration)
+
+      this.setState({
+        countdown: Math.floor((duration - loopInDuration - secondRate) / 1000)
+      })
+    } else if (relativeTailProgression > .75 && countdown !== 0) {
+      this.setState({
+        countdown: 0
+      })
+    }
+  }
+
   _getWholeInPath = memoize((tailIn, headIn, tailLoop, headLoop) => {
     const {
       width,
@@ -340,11 +413,20 @@ class Loop extends React.Component {
 }
 
 const styles = StyleSheet.create({
+  timer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loop: {
     width: '100%',
     aspectRatio: 1,
-    // borderWidth: 1,
-    borderColor: "grey",
+  },
+  countdown: {
+    color: '#fff',
+    position: 'absolute',
+    fontSize: 140,
+    textAlign: 'center',
+    width: '100%',
   }
 })
 

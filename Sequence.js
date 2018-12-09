@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Dimensions, FlatList, View, Animated } from 'react-native'
+import { StyleSheet, Dimensions, FlatList, View, Animated, Easing } from 'react-native'
 import Color from 'color'
 
 import Loop from './Loop'
@@ -24,7 +24,7 @@ class Sequence extends React.Component {
       xStartPosition={2 / 10}
       borderWidth={8 / 1000}
       fillColor={Color(`#5A7AED`).hex()}
-      trailColor={Color(`#202020`).hex()}
+      trailColor={Color(`#ffffff`).hex()}
       borderColor={`#fff`}
       headProgression={this._headProgression}
       tailProgression={this._tailProgression}
@@ -69,12 +69,6 @@ class Sequence extends React.Component {
           loopOut: durationLoopOut,
           out: durationOut,
         },
-        easings: {
-          in: easingIn,
-          loopIn: easingLoopIn,
-          loopOut: easingLoopOut,
-          out: easingOut,
-        },
       }, index) => Animated.sequence([
         Animated.timing(
           this._tailProgression,
@@ -82,7 +76,7 @@ class Sequence extends React.Component {
             toValue: index + .25,
             duration: durationIn,
             useNativeDriver: true,
-            easing: easingIn,
+            easing: Easing.inOut(Easing.linear),
           },
         ),
         Animated.timing(
@@ -91,7 +85,7 @@ class Sequence extends React.Component {
             toValue: index + .5,
             duration: durationLoopIn,
             useNativeDriver: true,
-            easing: easingLoopIn,
+            easing: Easing.inOut(Easing.linear),
           },
         ),
         Animated.timing(
@@ -100,7 +94,7 @@ class Sequence extends React.Component {
             toValue: index + .75,
             duration: durationLoopOut,
             useNativeDriver: true,
-            easing: easingLoopOut,
+            easing: Easing.inOut(Easing.linear),
           },
         ),
         Animated.timing(
@@ -109,7 +103,7 @@ class Sequence extends React.Component {
             toValue: index + 1,
             duration: durationOut,
             useNativeDriver: true,
-            easing: easingOut,
+            easing: Easing.inOut(Easing.linear),
           },
         )
       ]))

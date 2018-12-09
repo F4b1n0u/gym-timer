@@ -30,9 +30,9 @@ class App extends React.Component {
           id,
           durations: {
             in: 1500,
-            loopIn: 1000,
-            loopOut: 1000,
-            out: 1500,
+            loopIn: 27000,
+            loopOut: 3000,
+            out: 500,
           },
           easings: {
               in: Easing.in(Easing.bounce),
