@@ -22,7 +22,7 @@ class Sequence extends React.Component {
       width={15 / 100}
       loopRadius={3 / 10}
       xStartPosition={2 / 10}
-      borderWidth={8 / 1000}
+      borderWidth={8 / 100}
       fillColor={Color(`#5A7AED`).hex()}
       trailColor={Color(`#202020`).hex()}
       borderColor={`#fff`}

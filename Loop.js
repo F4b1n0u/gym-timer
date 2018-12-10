@@ -5,6 +5,8 @@ import { Svg } from 'expo'
 
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
+const ANIMATION_PRECISION = 4
+const RESOLUTION = 10
 class Loop extends React.Component {
   constructor(props) {
     super(props)
@@ -20,26 +22,30 @@ class Loop extends React.Component {
       in: {
         inputRange:  [this._getStep(0), this._getStep(1)],
         outputRange: [0,                1/2],
+        easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        useNativeDriver: true,
       },
       loopIn: {
         inputRange:  [this._getStep(1), this._getStep(2)],
         outputRange: [Math.PI,    Math.PI * 2],
+        easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        useNativeDriver: true,
       },
       loopOut: {
         inputRange:  [this._getStep(2), this._getStep(3)],
         outputRange: [0,          Math.PI],
+        easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        useNativeDriver: true,
       },
       out: {
         inputRange:  [this._getStep(3), this._getStep(4)],
         outputRange: [0,                3/6 + width/2 + borderWidth ],
+        easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
-        easing: Easing.inOut(Easing.linear)
+        useNativeDriver: true,
       },
     }
 
@@ -84,7 +90,7 @@ class Loop extends React.Component {
     return (
       <Svg
         style={styles.loop}
-        viewBox={`0 0 1 1`}
+        viewBox={`0 0 ${RESOLUTION} ${RESOLUTION}`}
       >
         {trailColor && (
           <React.Fragment>
@@ -118,16 +124,16 @@ class Loop extends React.Component {
     )
   }
 
-  _getStep = (ratio) => {
+  _getStep = memoize((ratio) => {
     const {
       startsAt,
       endsAt,
     } = this.props
 
     return startsAt + ratio / 4 * Math.abs(endsAt - startsAt)
-  }
+  })
 
-  _setPaths = (value, force=false) => {
+  _setPaths = (value, force = false) => {
     let {
       headProgression,
       tailProgression,
@@ -147,26 +153,25 @@ class Loop extends React.Component {
       return
     }
 
-    const headIn = this.headIn.__getValue()
-    const headLoopIn = this.headLoopIn.__getValue()
-    const headLoopOut = this.headLoopOut.__getValue()
-    const headOut = this.headOut.__getValue()
-
-    const tailIn = this.tailIn.__getValue()
-    const tailLoopIn = this.tailLoopIn.__getValue()
-    const tailLoopOut = this.tailLoopOut.__getValue()
-    const tailOut = this.tailOut.__getValue()
-
-    const wholeIntPath = this._getWholeInPath(tailIn, headIn, tailLoopIn, headLoopIn)
-    const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut, tailOut, headOut)
-
     if(headProgression <= this._getStep(2) || tailProgression <= this._getStep(2)) {
+      const headIn = Number(this.headIn.__getValue().toFixed(ANIMATION_PRECISION))
+      const headLoopIn = Number(this.headLoopIn.__getValue().toFixed(ANIMATION_PRECISION))
+      const tailLoopIn = Number(this.tailLoopIn.__getValue().toFixed(ANIMATION_PRECISION))
+      const tailIn = Number(this.tailIn.__getValue().toFixed(ANIMATION_PRECISION))
+      const wholeIntPath = this._getWholeInPath(tailIn, headIn, tailLoopIn, headLoopIn)
+
       this._loopInElement && this._loopInElement.setNativeProps({ d: wholeIntPath});
     } else {
       this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' });
     }
     
     if(headProgression >= this._getStep(2) || tailProgression >= this._getStep(2)) {
+      const headLoopOut = Number(this.headLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
+      const headOut = Number(this.headOut.__getValue().toFixed(ANIMATION_PRECISION))
+      const tailLoopOut = Number(this.tailLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
+      const tailOut = Number(this.tailOut.__getValue().toFixed(ANIMATION_PRECISION))
+      const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut, tailOut, headOut)
+
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: wholeOutPath});
     } else {
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: 'M 0 0'});
@@ -180,13 +185,25 @@ class Loop extends React.Component {
       loopRadius,
     } = this.props
 
+    const halfWidth = width / 2
+    const cosHeadLoop = Math.cos(headLoop)
+    const sinHeadLoop = Math.sin(headLoop)
+    const cosTailLoop = Math.cos(tailLoop)
+    const sinTailLoop = Math.sin(tailLoop)
+    const cosTailLoopPlusPI = Math.cos(tailLoop + Math.PI)
+    const sinTailLoopPlusPI = Math.sin(tailLoop + Math.PI)
+    const innerRadius = loopRadius - halfWidth
+    const outterRadius = loopRadius + halfWidth
+    const capRadius = halfWidth / 6
+
+
     const headloopInt = {
-      x: xStartPosition + (width / 2) + (Math.cos(headLoop) + 1) * (loopRadius - (width / 2)),
-      y: headIn - (1 * Math.sin(headLoop)) * (loopRadius - (width / 2)),
+      x: xStartPosition + halfWidth + (cosHeadLoop + 1) * innerRadius,
+      y: headIn - sinHeadLoop * innerRadius,
     }
     const tailLoopInt = {
-      x: xStartPosition + (width / 2) + ((Math.cos(tailLoop) + 1) * (loopRadius - (width / 2))),
-      y: headIn - (1 * Math.sin(tailLoop)) * (loopRadius - (width / 2)),
+      x: xStartPosition + halfWidth + ((cosTailLoop + 1) * innerRadius),
+      y: headIn - (1 * sinTailLoop) * innerRadius,
     }
     const tailInInt = {
       dx: 0,
@@ -198,56 +215,56 @@ class Loop extends React.Component {
     }
 
     const tailLoopExt = {
-      dx: (-1 * Math.cos(tailLoop + Math.PI)) * (width),
-      dy: (+1 * Math.sin(tailLoop + Math.PI)) * (width)
+      dx: -cosTailLoopPlusPI * width,
+      dy: sinTailLoopPlusPI * width
     }
     const headloopExt = {
-      x: xStartPosition - (width / 2) + ((Math.cos(headLoop) + 1) * (loopRadius + (width / 2))),
-      y: headIn - (1 * Math.sin(headLoop)) * (loopRadius + (width / 2)),
+      x: xStartPosition - halfWidth + ((cosHeadLoop + 1) * outterRadius),
+      y: headIn - sinHeadLoop * outterRadius,
     }
     
     const path = `
       M
-      ${headloopInt.x}
-      ${headloopInt.y}
+      ${headloopInt.x * RESOLUTION}
+      ${headloopInt.y * RESOLUTION}
       
       A
-      ${loopRadius - (width / 2)}
-      ${loopRadius - (width / 2)}
+      ${(loopRadius - halfWidth) * RESOLUTION}
+      ${(loopRadius - halfWidth) * RESOLUTION}
       0 0 1
-      ${tailLoopInt.x}
-      ${tailLoopInt.y}
+      ${tailLoopInt.x * RESOLUTION}
+      ${tailLoopInt.y * RESOLUTION}
 
       l
-      ${tailInInt.dx}
-      ${tailInInt.dy}
+      ${tailInInt.dx * RESOLUTION}
+      ${tailInInt.dy * RESOLUTION}
 
       a
-      ${(width / 2) / 6}
-      ${(width / 2) / 6}
+      ${capRadius * RESOLUTION}
+      ${capRadius * RESOLUTION}
       0 0 0
-      ${tailLoopExt.dx}
-      ${tailLoopExt.dy}
+      ${tailLoopExt.dx * RESOLUTION}
+      ${tailLoopExt.dy * RESOLUTION}
 
       l
-      ${tailInExt.dx}
-      ${tailInExt.dy}
+      ${tailInExt.dx * RESOLUTION}
+      ${tailInExt.dy * RESOLUTION}
 
       A
-      ${loopRadius + (width / 2)}
-      ${loopRadius + (width / 2)}
+      ${(loopRadius + halfWidth) * RESOLUTION}
+      ${(loopRadius + halfWidth) * RESOLUTION}
       0 0 0
-      ${headloopExt.x}
-      ${headloopExt.y}
+      ${headloopExt.x * RESOLUTION}
+      ${headloopExt.y * RESOLUTION}
     `
 
     const cap = headLoop < 2 * Math.PI ? `
       A
-      ${(width / 2) / 6}
-      ${(width / 2) / 6}
+      ${capRadius * RESOLUTION}
+      ${capRadius * RESOLUTION}
       0 0 0
-      ${headloopInt.x}
-      ${headloopInt.y}
+      ${headloopInt.x * RESOLUTION}
+      ${headloopInt.y * RESOLUTION}
     ` : ''
 
     return `
@@ -268,71 +285,82 @@ class Loop extends React.Component {
       y: 1/2,
     }
 
+    const halfWidth = width / 2
+    const cosHeadLoop = Math.cos(headLoop)
+    const sinHeadLoop = Math.sin(headLoop)
+    const cosTailLoop = Math.cos(tailLoop)
+    const sinTailLoop = Math.sin(tailLoop)
+    const cosHeadLoopPlusPI = Math.cos(headLoop + Math.PI)
+    const sinHeadLoopPlusPI = Math.sin(headLoop + Math.PI)
+    const innerRadius = loopRadius - halfWidth
+    const outterRadius = loopRadius + halfWidth
+    const capRadius = halfWidth / 6
+
     const tailLoopExt = { // OK
-      x: center.x + Math.cos(tailLoop) * (loopRadius + (width / 2)),
-      y: center.y + -1 * Math.sin(tailLoop) * (loopRadius + (width / 2)) + tailOut,
+      x: center.x + cosTailLoop * outterRadius,
+      y: center.y + -1 * sinTailLoop * outterRadius + tailOut,
     }
     const headLoopExt = {
-      x: center.x + Math.cos(headLoop) * (loopRadius + (width / 2)),
-      y: center.y + -1 * Math.sin(headLoop) * (loopRadius + (width / 2)) + tailOut,
+      x: center.x + cosHeadLoop * outterRadius,
+      y: center.y + -1 * sinHeadLoop * outterRadius + tailOut,
     }
     const headOutExt = {
       x: headLoopExt.x,
       y: headLoopExt.y + headOut,
     }
     const headOutInt = {
-      dx:  1 * Math.cos(headLoop + Math.PI) * (width),
-      dy: -1 * Math.sin(headLoop + Math.PI) * (width),
+      dx: cosHeadLoopPlusPI * width,
+      dy: -sinHeadLoopPlusPI * width,
     }
     const headLoopInt = {
-      x: center.x + Math.cos(headLoop) * (loopRadius - (width / 2)),
-      y: center.y + -1 * Math.sin(headLoop) * (loopRadius - (width / 2)) + tailOut,
+      x: center.x + cosHeadLoop * innerRadius,
+      y: center.y - sinHeadLoop * innerRadius + tailOut,
     }
     const tailLoopInt = {
-      x: center.x + Math.cos(tailLoop) * (loopRadius - (width / 2)),
-      y: center.y + -1 * Math.sin(tailLoop) * (loopRadius - (width / 2)) + tailOut,
+      x: center.x + cosTailLoop * innerRadius,
+      y: center.y - sinTailLoop * innerRadius + tailOut,
     }
 
     const path = `
       M
-      ${tailLoopExt.x}
-      ${tailLoopExt.y}
+      ${tailLoopExt.x * RESOLUTION}
+      ${tailLoopExt.y * RESOLUTION}
 
       A
-      ${loopRadius + (width / 2)}
-      ${loopRadius + (width / 2)}
+      ${(loopRadius + halfWidth) * RESOLUTION}
+      ${(loopRadius + halfWidth) * RESOLUTION}
       0 0 0
-      ${headLoopExt.x}
-      ${headLoopExt.y}
+      ${headLoopExt.x * RESOLUTION}
+      ${headLoopExt.y * RESOLUTION}
 
       L
-      ${headOutExt.x}
-      ${headOutExt.y}
+      ${headOutExt.x * RESOLUTION}
+      ${headOutExt.y * RESOLUTION}
 
       a
-      ${(width / 2) / 6}
-      ${(width / 2) / 6}
+      ${capRadius * RESOLUTION}
+      ${capRadius * RESOLUTION}
       0 0 0
-      ${headOutInt.dx}
-      ${headOutInt.dy}
+      ${headOutInt.dx * RESOLUTION}
+      ${headOutInt.dy * RESOLUTION}
 
       L
-      ${headLoopInt.x}
-      ${headLoopInt.y}
+      ${headLoopInt.x * RESOLUTION}
+      ${headLoopInt.y * RESOLUTION}
 
       A
-      ${loopRadius - (width / 2)}
-      ${loopRadius - (width / 2)}
+      ${innerRadius * RESOLUTION}
+      ${innerRadius * RESOLUTION}
       0 0 1
-      ${tailLoopInt.x}
-      ${tailLoopInt.y}
+      ${tailLoopInt.x * RESOLUTION}
+      ${tailLoopInt.y * RESOLUTION}
 
       A
-      ${(width / 2) / 6}
-      ${(width / 2) / 6}
+      ${capRadius * RESOLUTION}
+      ${capRadius * RESOLUTION}
       0 0 0
-      ${tailLoopExt.x}
-      ${tailLoopExt.y}
+      ${tailLoopExt.x * RESOLUTION}
+      ${tailLoopExt.y * RESOLUTION}
     `
 
     return path
@@ -343,8 +371,6 @@ const styles = StyleSheet.create({
   loop: {
     width: '100%',
     aspectRatio: 1,
-    // borderWidth: 1,
-    borderColor: "grey",
   }
 })
 
