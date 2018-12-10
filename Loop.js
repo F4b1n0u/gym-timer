@@ -1,7 +1,9 @@
 import React from 'react'
-import { StyleSheet, Animated, Easing, Text, View} from 'react-native'
+import { StyleSheet, Animated, Easing, Text, View, Dimensions } from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
+
+const { width: windowWidth } = Dimensions.get('window');
 
 const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
 
@@ -30,17 +32,10 @@ class Loop extends React.Component {
       countdown: (loopIn + loopOut) / 1000,
     }
 
-    // inputRange:  [this._getStep(-1),            this._getStep(0), this._getStep(1)],
-    // outputRange: [-1/2 - width/2 - borderWidth, 0,                1/2],
-
-
-    // inputRange:  [this._getStep(3), this._getStep(4), this._getStep(5)],
-    // outputRange: [0,                1/2,              1 + width/2 + borderWidth],
-
     const interpolations = {
       in: {
         inputRange:  [this._getStep(0), this._getStep(1)],
-        outputRange: [0,                1/2],
+        outputRange: [0,                1],
         easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
         useNativeDriver: true,
@@ -95,6 +90,9 @@ class Loop extends React.Component {
       borderColor,
       borderWidth,
       trailColor,
+      loopRadius,
+      width,
+      startsAt
     } = this.props
 
     const {
@@ -105,21 +103,21 @@ class Loop extends React.Component {
     
     return (
       <View
-        style={styles.timer}
+        style={[styles.timer, { zIndex: 10000 - startsAt }]}
       >
         <Svg
           style={styles.loop}
-          viewBox={`0 0 ${RESOLUTION} ${RESOLUTION * 1}`}
+          viewBox={`0 0 ${RESOLUTION} ${RESOLUTION * 2}`}
         >
           {trailColor && (
             <React.Fragment>
               <Svg.Path
-                d={this._getWholeInPath(0, 0.5, Math.PI, 2 * Math.PI)}
+                d={this._getWholeInPath(0, 1, Math.PI, 2 * Math.PI)}
                 fill={trailColor}
                 // fillOpacity="0.4"
               />
               <Svg.Path
-                d={this._getWholeOutPath(0, Math.PI, 0, 1/2)}
+                d={this._getWholeOutPath(0, Math.PI)}
                 fill={trailColor}
                 // fillOpacity="0.4"
               />
@@ -161,13 +159,16 @@ class Loop extends React.Component {
       endsAt,
     } = this.props
 
-    return startsAt + ratio / 4 * Math.abs(endsAt - startsAt)
+    if(startsAt > 0)
+      console.log(startsAt, ratio, endsAt - startsAt)
+    return startsAt + ratio / 3 * Math.abs(endsAt - startsAt)
   })
 
   _setPaths = (value, force = false) => {
     let {
       headProgression,
       tailProgression,
+      startsAt
     } = this.props
 
     
@@ -176,8 +177,8 @@ class Loop extends React.Component {
 
     if (
       !force &&
-      (tailProgression < this._getStep(0) || tailProgression > this._getStep(4)) &&
-      (headProgression < this._getStep(0) || headProgression > this._getStep(4))
+      (tailProgression < this._getStep(0) || tailProgression >= this._getStep(3)) &&
+      (headProgression < this._getStep(0) || headProgression >= this._getStep(3))
     ) {
       return
     }
@@ -194,7 +195,9 @@ class Loop extends React.Component {
       this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' });
     }
     
-    if(headProgression >= this._getStep(2) || tailProgression >= this._getStep(2)) {
+    if(headProgression < this._getStep(3) || tailProgression < this._getStep(3)) {
+      if (startsAt > 0)
+        console.log(headProgression, this._getStep(3))
       const headLoopOut = Number(this.headLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
       const tailLoopOut = Number(this.tailLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
       const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut)
@@ -234,11 +237,11 @@ class Loop extends React.Component {
     }
     const tailInInt = {
       dx: 0,
-      dy: -1/2 + tailIn,
+      dy: -1 + tailIn,
     }
     const tailInExt = {
       dx: 0,
-      dy: 1/2 - tailIn,
+      dy: 1 - tailIn,
     }
 
     const tailLoopExt = {
@@ -309,7 +312,7 @@ class Loop extends React.Component {
     
     center = {
       x: xStartPosition + loopRadius,
-      y: 1/2,
+      y: 1,
     }
 
     const halfWidth = width / 2
@@ -434,12 +437,15 @@ const styles = StyleSheet.create({
   timer: {
     justifyContent: 'center',
     alignItems: 'center',
-    // overflow: 'visible',
+    overflow: 'visible',
+    height: windowWidth,
   },
   loop: {
+    // position: 'absolute',
     width: '100%',
-    // marginBottom: `-${100/3}%`,
-    aspectRatio: 1,
+    // marginBottom: `-${100}%`,
+    aspectRatio: 1/3,
+    // height: 400
   },
   countdown: {
     color: '#fff',

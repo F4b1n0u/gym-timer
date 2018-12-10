@@ -11,7 +11,7 @@ class Sequence extends React.Component {
     super(props)
 
     this._headProgression = new Animated.Value(props.timers.length)
-    this._tailProgression = new Animated.Value(1)
+    this._tailProgression = new Animated.Value(0)
   }
 
   _keyExtractor = ({ id }) => `${id}`
@@ -94,7 +94,7 @@ class Sequence extends React.Component {
         Animated.timing(
           this._tailProgression,
           {
-            toValue: index + 3/3,
+            toValue: index + 1,
             duration: durationLoopOut,
             useNativeDriver: true,
             easing: Easing.inOut(Easing.linear),
