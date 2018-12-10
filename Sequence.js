@@ -11,7 +11,7 @@ class Sequence extends React.Component {
     super(props)
 
     this._headProgression = new Animated.Value(props.timers.length)
-    this._tailProgression = new Animated.Value(0)
+    this._tailProgression = new Animated.Value(1)
   }
 
   _keyExtractor = ({ id }) => `${id}`
@@ -53,7 +53,7 @@ class Sequence extends React.Component {
   }
 
   componentDidMount() {
-    this._startAnimation()
+    // this._startAnimation()
   }
 
   _startAnimation = () => {
@@ -67,22 +67,25 @@ class Sequence extends React.Component {
           in: durationIn,
           loopIn: durationLoopIn,
           loopOut: durationLoopOut,
-          out: durationOut,
         },
+        easings: {
+          in: inEasing,
+          out: outEasing,
+        }
       }, index) => Animated.sequence([
         Animated.timing(
           this._tailProgression,
           {
-            toValue: index + .25,
+            toValue: index + 1/3,
             duration: durationIn,
             useNativeDriver: true,
-            easing: Easing.inOut(Easing.linear),
+            easing: inEasing,
           },
         ),
         Animated.timing(
           this._tailProgression,
           {
-            toValue: index + .5,
+            toValue: index + 2/3,
             duration: durationLoopIn,
             useNativeDriver: true,
             easing: Easing.inOut(Easing.linear),
@@ -91,21 +94,12 @@ class Sequence extends React.Component {
         Animated.timing(
           this._tailProgression,
           {
-            toValue: index + .75,
+            toValue: index + 3/3,
             duration: durationLoopOut,
             useNativeDriver: true,
             easing: Easing.inOut(Easing.linear),
           },
         ),
-        Animated.timing(
-          this._tailProgression,
-          {
-            toValue: index + 1,
-            duration: durationOut,
-            useNativeDriver: true,
-            easing: Easing.inOut(Easing.linear),
-          },
-        )
       ]))
     ).start(this._startAnimation)
   }

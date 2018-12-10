@@ -21,10 +21,8 @@ class Loop extends React.Component {
         loopOut,
       },
       easings: {
-        in: easingIn,
         loopIn: easingLoopIn,
         loopOut: easingLoopOut,
-        out: easingOut,
       },
     } = props
 
@@ -32,11 +30,18 @@ class Loop extends React.Component {
       countdown: (loopIn + loopOut) / 1000,
     }
 
+    // inputRange:  [this._getStep(-1),            this._getStep(0), this._getStep(1)],
+    // outputRange: [-1/2 - width/2 - borderWidth, 0,                1/2],
+
+
+    // inputRange:  [this._getStep(3), this._getStep(4), this._getStep(5)],
+    // outputRange: [0,                1/2,              1 + width/2 + borderWidth],
+
     const interpolations = {
       in: {
         inputRange:  [this._getStep(0), this._getStep(1)],
         outputRange: [0,                1/2],
-        easing: easingIn,
+        easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
         useNativeDriver: true,
       },
@@ -49,15 +54,8 @@ class Loop extends React.Component {
       },
       loopOut: {
         inputRange:  [this._getStep(2), this._getStep(3)],
-        outputRange: [0,          Math.PI],
+        outputRange: [0,                Math.PI],
         easing: easingLoopOut,
-        extrapolate: 'clamp',
-        useNativeDriver: true,
-      },
-      out: {
-        inputRange:  [this._getStep(3), this._getStep(4)],
-        outputRange: [0,                3/6 + width/2 + borderWidth ],
-        easing: easingOut,
         extrapolate: 'clamp',
         useNativeDriver: true,
       },
@@ -66,12 +64,10 @@ class Loop extends React.Component {
     this.headIn = headProgression.interpolate(interpolations.in)
     this.headLoopIn = headProgression.interpolate(interpolations.loopIn)
     this.headLoopOut = headProgression.interpolate(interpolations.loopOut)
-    this.headOut = headProgression.interpolate(interpolations.out)
 
     this.tailIn = tailProgression.interpolate(interpolations.in)
     this.tailLoopIn = tailProgression.interpolate(interpolations.loopIn)
     this.tailLoopOut = tailProgression.interpolate(interpolations.loopOut)
-    this.tailOut = tailProgression.interpolate(interpolations.out)
 
     headProgression.addListener(this._setPaths)
     tailProgression.addListener(this._setPaths)
@@ -113,17 +109,19 @@ class Loop extends React.Component {
       >
         <Svg
           style={styles.loop}
-          viewBox={`0 0 ${RESOLUTION} ${RESOLUTION}`}
+          viewBox={`0 0 ${RESOLUTION} ${RESOLUTION * 1}`}
         >
           {trailColor && (
             <React.Fragment>
               <Svg.Path
                 d={this._getWholeInPath(0, 0.5, Math.PI, 2 * Math.PI)}
                 fill={trailColor}
+                // fillOpacity="0.4"
               />
               <Svg.Path
                 d={this._getWholeOutPath(0, Math.PI, 0, 1/2)}
                 fill={trailColor}
+                // fillOpacity="0.4"
               />
             </React.Fragment>
           )}
@@ -133,6 +131,7 @@ class Loop extends React.Component {
             d={d}
             stroke={borderColor}
             fill={fillColor}
+            // fillOpacity="0.4"
             strokeWidth={borderWidth}
           />
 
@@ -141,6 +140,7 @@ class Loop extends React.Component {
             d={d}
             stroke={borderColor}
             fill={fillColor}
+            // fillOpacity="0.4"
             strokeWidth={borderWidth}
           />
         </Svg>
@@ -168,8 +168,6 @@ class Loop extends React.Component {
     let {
       headProgression,
       tailProgression,
-      startsAt,
-      endsAt,
     } = this.props
 
     
@@ -178,8 +176,8 @@ class Loop extends React.Component {
 
     if (
       !force &&
-      (tailProgression < startsAt || tailProgression > endsAt) &&
-      (headProgression < startsAt || headProgression > endsAt)
+      (tailProgression < this._getStep(0) || tailProgression > this._getStep(4)) &&
+      (headProgression < this._getStep(0) || headProgression > this._getStep(4))
     ) {
       return
     }
@@ -198,10 +196,8 @@ class Loop extends React.Component {
     
     if(headProgression >= this._getStep(2) || tailProgression >= this._getStep(2)) {
       const headLoopOut = Number(this.headLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
-      const headOut = Number(this.headOut.__getValue().toFixed(ANIMATION_PRECISION))
       const tailLoopOut = Number(this.tailLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
-      const tailOut = Number(this.tailOut.__getValue().toFixed(ANIMATION_PRECISION))
-      const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut, tailOut, headOut)
+      const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut)
 
       this._loopOutElement && this._loopOutElement.setNativeProps({ d: wholeOutPath});
     } else {
@@ -304,7 +300,7 @@ class Loop extends React.Component {
     `
   })
 
-  _getWholeOutPath = memoize((tailLoop, headLoop, tailOut, headOut) => {
+  _getWholeOutPath = memoize((tailLoop, headLoop) => {
     const {
       width,
       xStartPosition,
@@ -329,27 +325,19 @@ class Loop extends React.Component {
 
     const tailLoopExt = { // OK
       x: center.x + cosTailLoop * outterRadius,
-      y: center.y + -1 * sinTailLoop * outterRadius + tailOut,
+      y: center.y + -1 * sinTailLoop * outterRadius,
     }
     const headLoopExt = {
       x: center.x + cosHeadLoop * outterRadius,
-      y: center.y + -1 * sinHeadLoop * outterRadius + tailOut,
-    }
-    const headOutExt = {
-      x: headLoopExt.x,
-      y: headLoopExt.y + headOut,
-    }
-    const headOutInt = {
-      dx: cosHeadLoopPlusPI * width,
-      dy: -sinHeadLoopPlusPI * width,
+      y: center.y + -1 * sinHeadLoop * outterRadius,
     }
     const headLoopInt = {
       x: center.x + cosHeadLoop * innerRadius,
-      y: center.y - sinHeadLoop * innerRadius + tailOut,
+      y: center.y - sinHeadLoop * innerRadius,
     }
     const tailLoopInt = {
       x: center.x + cosTailLoop * innerRadius,
-      y: center.y - sinTailLoop * innerRadius + tailOut,
+      y: center.y - sinTailLoop * innerRadius,
     }
 
     const path = `
@@ -364,18 +352,10 @@ class Loop extends React.Component {
       ${headLoopExt.x * RESOLUTION}
       ${headLoopExt.y * RESOLUTION}
 
-      L
-      ${headOutExt.x * RESOLUTION}
-      ${headOutExt.y * RESOLUTION}
-
-      a
+      A
       ${capRadius * RESOLUTION}
       ${capRadius * RESOLUTION}
       0 0 0
-      ${headOutInt.dx * RESOLUTION}
-      ${headOutInt.dy * RESOLUTION}
-
-      L
       ${headLoopInt.x * RESOLUTION}
       ${headLoopInt.y * RESOLUTION}
 
@@ -420,9 +400,9 @@ class Loop extends React.Component {
     let relativeProgression
     let secondRate
 
-    if (relativeTailProgression > .25 && relativeTailProgression < .5) { // in the in loop
-      relativeProgression = (relativeTailProgression - .25) * 4  // (0 -> 1)
-      secondRate = loopInDuration * relativeProgression          // (0 -> loopInDuration)
+    if (relativeTailProgression > .25 && relativeTailProgression < .5) {  // in the in loop
+      relativeProgression = (relativeTailProgression - .25) * 4           // (0 -> 1)
+      secondRate = loopInDuration * relativeProgression                   // (0 -> loopInDuration)
 
       const newCountdown = Math.floor((duration - secondRate) / 1000)
 
@@ -432,8 +412,8 @@ class Loop extends React.Component {
         })
       }
     } else if (relativeTailProgression > .5 && relativeTailProgression < .75) { // in the out loop
-      const relativeProgression = (relativeTailProgression - .5) * 4  // (0 -> 1)
-      secondRate = loopOutDuration * relativeProgression            // (0 -> loopInDuration)
+      const relativeProgression = (relativeTailProgression - .5) * 4            // (0 -> 1)
+      secondRate = loopOutDuration * relativeProgression                        // (0 -> loopInDuration)
 
       const newCountdown = Math.floor((duration - loopInDuration - secondRate) / 1000)
 
@@ -454,9 +434,11 @@ const styles = StyleSheet.create({
   timer: {
     justifyContent: 'center',
     alignItems: 'center',
+    // overflow: 'visible',
   },
   loop: {
     width: '100%',
+    // marginBottom: `-${100/3}%`,
     aspectRatio: 1,
   },
   countdown: {
