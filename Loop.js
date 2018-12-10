@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Animated, Easing } from 'react-native'
+import { StyleSheet, Animated, Easing, Text, View} from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 
@@ -16,34 +16,48 @@ class Loop extends React.Component {
       borderWidth,
       headProgression,
       tailProgression,
+      durations: {
+        loopIn,
+        loopOut,
+      },
+      easings: {
+        in: easingIn,
+        loopIn: easingLoopIn,
+        loopOut: easingLoopOut,
+        out: easingOut,
+      },
     } = props
+
+    this.state = {
+      countdown: (loopIn + loopOut) / 1000,
+    }
 
     const interpolations = {
       in: {
         inputRange:  [this._getStep(0), this._getStep(1)],
         outputRange: [0,                1/2],
-        easing: Easing.inOut(Easing.linear),
+        easing: easingIn,
         extrapolate: 'clamp',
         useNativeDriver: true,
       },
       loopIn: {
         inputRange:  [this._getStep(1), this._getStep(2)],
         outputRange: [Math.PI,    Math.PI * 2],
-        easing: Easing.inOut(Easing.linear),
+        easing: easingLoopIn,
         extrapolate: 'clamp',
         useNativeDriver: true,
       },
       loopOut: {
         inputRange:  [this._getStep(2), this._getStep(3)],
         outputRange: [0,          Math.PI],
-        easing: Easing.inOut(Easing.linear),
+        easing: easingLoopOut,
         extrapolate: 'clamp',
         useNativeDriver: true,
       },
       out: {
         inputRange:  [this._getStep(3), this._getStep(4)],
         outputRange: [0,                3/6 + width/2 + borderWidth ],
-        easing: Easing.inOut(Easing.linear),
+        easing: easingOut,
         extrapolate: 'clamp',
         useNativeDriver: true,
       },
@@ -61,6 +75,7 @@ class Loop extends React.Component {
 
     headProgression.addListener(this._setPaths)
     tailProgression.addListener(this._setPaths)
+    tailProgression.addListener(this._handleTailMoveForCountDown)
   }
 
   componentWillMount() {
@@ -69,8 +84,9 @@ class Loop extends React.Component {
       tailProgression,
     } = this.props
     
-    headProgression.removeListener(this._setPaths);
-    tailProgression.removeListener(this._setPaths);
+    headProgression.removeListener(this._setPaths)
+    tailProgression.removeListener(this._setPaths)
+    tailProgression.removeListener(this._handleTailMoveForCountDown)
   }
 
   componentDidMount() {
@@ -85,42 +101,57 @@ class Loop extends React.Component {
       trailColor,
     } = this.props
 
+    const {
+      countdown,
+    } = this.state
+
     const d = 'M 0 0'
     
     return (
-      <Svg
-        style={styles.loop}
-        viewBox={`0 0 ${RESOLUTION} ${RESOLUTION}`}
+      <View
+        style={styles.timer}
       >
-        {trailColor && (
-          <React.Fragment>
-            <Svg.Path
-              d={this._getWholeInPath(0, 0.5, Math.PI, 2 * Math.PI)}
-              fill={trailColor}
-            />
-            <Svg.Path
-              d={this._getWholeOutPath(0, Math.PI, 0, 1/2)}
-              fill={trailColor}
-            />
-          </React.Fragment>
-        )}
-        
-        <AnimatedSvgPath
-          ref={ ref => this._loopOutElement = ref }
-          d={d}
-          stroke={borderColor}
-          fill={fillColor}
-          strokeWidth={borderWidth}
-        />
+        <Svg
+          style={styles.loop}
+          viewBox={`0 0 ${RESOLUTION} ${RESOLUTION}`}
+        >
+          {trailColor && (
+            <React.Fragment>
+              <Svg.Path
+                d={this._getWholeInPath(0, 0.5, Math.PI, 2 * Math.PI)}
+                fill={trailColor}
+              />
+              <Svg.Path
+                d={this._getWholeOutPath(0, Math.PI, 0, 1/2)}
+                fill={trailColor}
+              />
+            </React.Fragment>
+          )}
+          
+          <AnimatedSvgPath
+            ref={ ref => this._loopOutElement = ref }
+            d={d}
+            stroke={borderColor}
+            fill={fillColor}
+            strokeWidth={borderWidth}
+          />
 
-        <AnimatedSvgPath
-          ref={ ref => this._loopInElement = ref }
-          d={d}
-          stroke={borderColor}
-          fill={fillColor}
-          strokeWidth={borderWidth}
-        />
-      </Svg>
+          <AnimatedSvgPath
+            ref={ ref => this._loopInElement = ref }
+            d={d}
+            stroke={borderColor}
+            fill={fillColor}
+            strokeWidth={borderWidth}
+          />
+        </Svg>
+
+        <Text
+          style={styles.countdown}
+        >
+          {countdown}
+        </Text>
+      </View>
+
     )
   }
 
@@ -365,12 +396,75 @@ class Loop extends React.Component {
 
     return path
   })
+
+  _handleTailMoveForCountDown = ({ value }) => {
+    this._setCountdown(Number(value.toFixed(ANIMATION_PRECISION)))
+  }
+
+  _setCountdown = memoize((tailProgression) => {
+    const {
+      durations: {
+        loopIn: loopInDuration,
+        loopOut: loopOutDuration,
+      },
+      startsAt,
+    } = this.props
+
+    const {
+      countdown,
+    } = this.state
+
+    const relativeTailProgression = tailProgression - startsAt
+
+    const duration = loopInDuration + loopOutDuration + 1000
+    let relativeProgression
+    let secondRate
+
+    if (relativeTailProgression > .25 && relativeTailProgression < .5) { // in the in loop
+      relativeProgression = (relativeTailProgression - .25) * 4  // (0 -> 1)
+      secondRate = loopInDuration * relativeProgression          // (0 -> loopInDuration)
+
+      const newCountdown = Math.floor((duration - secondRate) / 1000)
+
+      if (countdown !== newCountdown) {
+        this.setState({
+          countdown: newCountdown
+        })
+      }
+    } else if (relativeTailProgression > .5 && relativeTailProgression < .75) { // in the out loop
+      const relativeProgression = (relativeTailProgression - .5) * 4  // (0 -> 1)
+      secondRate = loopOutDuration * relativeProgression            // (0 -> loopInDuration)
+
+      const newCountdown = Math.floor((duration - loopInDuration - secondRate) / 1000)
+
+      if (countdown !== newCountdown) {
+        this.setState({
+          countdown: newCountdown
+        })
+      }
+    } else if (relativeTailProgression > .75 && countdown !== 0) {
+      this.setState({
+        countdown: 0
+      })
+    }
+  })
 }
 
 const styles = StyleSheet.create({
+  timer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loop: {
     width: '100%',
     aspectRatio: 1,
+  },
+  countdown: {
+    color: '#fff',
+    position: 'absolute',
+    fontSize: 140,
+    textAlign: 'center',
+    width: '100%',
   }
 })
 
