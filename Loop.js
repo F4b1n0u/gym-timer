@@ -81,6 +81,7 @@ class Loop extends React.Component {
     
     headProgression.removeListener(this._setPaths);
     tailProgression.removeListener(this._setPaths);
+    tailProgression.removeListener(this._setCountdown);
   }
 
   componentDidMount() {
@@ -230,16 +231,23 @@ class Loop extends React.Component {
       const relativeProgression = (relativeTailProgression - .25) * 4  // (0 -> 1)
       secondRate = loopInDuration * relativeProgression                // (0 -> loopInDuration)
 
-      this.setState({
-        countdown: Math.floor((duration - secondRate) / 1000)
-      })
+      const newCountdown = Math.floor((duration - secondRate) / 1000)
+
+      if (countdown != newCountdown) {
+        this.setState({
+          countdown: newCountdown
+        })
+      }
     } else if (relativeTailProgression > .5 && relativeTailProgression < .75) {
       const relativeProgression = (relativeTailProgression - .5) * 4  // (0 -> 1)
       secondRate = loopOutDuration * relativeProgression                  // (0 -> loopInDuration)
 
-      this.setState({
-        countdown: Math.floor((duration - loopInDuration - secondRate) / 1000)
-      })
+      const newCountdown = Math.floor((duration - secondRate) / 1000)
+      if (countdown != newCountdown) {
+        this.setState({
+          countdown: newCountdown
+        })
+      }
     } else if (relativeTailProgression > .75 && countdown !== 0) {
       this.setState({
         countdown: 0
