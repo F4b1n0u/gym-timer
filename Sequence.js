@@ -10,8 +10,8 @@ class Sequence extends React.Component {
   constructor(props) {
     super(props)
 
-    this._headProgression = new Animated.Value(props.timers.length)
     this._tailProgression = new Animated.Value(0)
+    this._headProgression = new Animated.Value(props.timers.length) // TODO bug in the head
   }
 
   _keyExtractor = ({ id }) => `${id}`
@@ -24,7 +24,7 @@ class Sequence extends React.Component {
       xStartPosition={2 / 10}
       borderWidth={8 / 100}
       fillColor={Color(`#5A7AED`).hex()}
-      trailColor={Color(`#202020`).hex()}
+      // trailColor={Color(`#202020`).hex()}
       borderColor={`#fff`}
       headProgression={this._headProgression}
       tailProgression={this._tailProgression}
@@ -46,6 +46,18 @@ class Sequence extends React.Component {
           data={timers}
           keyExtractor={this._keyExtractor}
           renderItem={this._renderTimer}
+          CellRendererComponent={({ children, index, style, ...props }) => (
+            <View
+              style={[
+                style,
+                { zIndex: timers.length - index }
+              ]}
+              index={index}
+              {...props
+            }>
+              {children}
+            </View>
+          )}
           scrollEventThrottle={8}
         />
       </View>
@@ -53,7 +65,7 @@ class Sequence extends React.Component {
   }
 
   componentDidMount() {
-    // this._startAnimation()
+    this._startAnimation()
   }
 
   _startAnimation = () => {

@@ -3,9 +3,7 @@ import { StyleSheet, Animated, Easing, Text, View, Dimensions } from 'react-nati
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 
-const { width: windowWidth } = Dimensions.get('window');
-
-const AnimatedSvgPath = Animated.createAnimatedComponent(Svg.Path)
+const { width: windowWidth } = Dimensions.get('window')
 
 const ANIMATION_PRECISION = 4
 const RESOLUTION = 10
@@ -14,8 +12,6 @@ class Loop extends React.Component {
     super(props)
 
     const {
-      width,
-      borderWidth,
       headProgression,
       tailProgression,
       durations: {
@@ -90,8 +86,6 @@ class Loop extends React.Component {
       borderColor,
       borderWidth,
       trailColor,
-      loopRadius,
-      width,
       startsAt
     } = this.props
 
@@ -117,23 +111,28 @@ class Loop extends React.Component {
                 // fillOpacity="0.4"
               />
               <Svg.Path
-                d={this._getWholeOutPath(0, Math.PI)}
+                d={this._getWholeOutPaths(0, Math.PI)}
                 fill={trailColor}
                 // fillOpacity="0.4"
               />
             </React.Fragment>
           )}
           
-          <AnimatedSvgPath
-            ref={ ref => this._loopOutElement = ref }
+          <Svg.Path
+            ref={ ref => this._loopOutFillElement = ref }
             d={d}
-            stroke={borderColor}
             fill={fillColor}
             // fillOpacity="0.4"
+          />
+           <Svg.Path
+            ref={ ref => this._loopOutBorderElement = ref }
+            d={d}
+            stroke={borderColor}
+            fillOpacity={0}
             strokeWidth={borderWidth}
           />
 
-          <AnimatedSvgPath
+          <Svg.Path
             ref={ ref => this._loopInElement = ref }
             d={d}
             stroke={borderColor}
@@ -159,8 +158,7 @@ class Loop extends React.Component {
       endsAt,
     } = this.props
 
-    if(startsAt > 0)
-      console.log(startsAt, ratio, endsAt - startsAt)
+    
     return startsAt + ratio / 3 * Math.abs(endsAt - startsAt)
   })
 
@@ -168,7 +166,6 @@ class Loop extends React.Component {
     let {
       headProgression,
       tailProgression,
-      startsAt
     } = this.props
 
     
@@ -177,8 +174,8 @@ class Loop extends React.Component {
 
     if (
       !force &&
-      (tailProgression < this._getStep(0) || tailProgression >= this._getStep(3)) &&
-      (headProgression < this._getStep(0) || headProgression >= this._getStep(3))
+      (tailProgression < this._getStep(0) || tailProgression > this._getStep(3)) &&
+      (headProgression < this._getStep(0) || headProgression > this._getStep(3))
     ) {
       return
     }
@@ -195,16 +192,15 @@ class Loop extends React.Component {
       this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' });
     }
     
-    if(headProgression < this._getStep(3) || tailProgression < this._getStep(3)) {
-      if (startsAt > 0)
-        console.log(headProgression, this._getStep(3))
+    if(headProgression > this._getStep(2) && tailProgression <= this._getStep(3)) {
       const headLoopOut = Number(this.headLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
       const tailLoopOut = Number(this.tailLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
-      const wholeOutPath = this._getWholeOutPath(tailLoopOut, headLoopOut)
+      const { wholeOutFillPath, wholeOutBorderPath } = this._getWholeOutPaths(tailLoopOut, headLoopOut)
 
-      this._loopOutElement && this._loopOutElement.setNativeProps({ d: wholeOutPath});
+      this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
+      this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
     } else {
-      this._loopOutElement && this._loopOutElement.setNativeProps({ d: 'M 0 0'});
+      this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: 'M 0 0'})
     }
   }
  
@@ -259,8 +255,8 @@ class Loop extends React.Component {
       ${headloopInt.y * RESOLUTION}
       
       A
-      ${(loopRadius - halfWidth) * RESOLUTION}
-      ${(loopRadius - halfWidth) * RESOLUTION}
+      ${innerRadius * RESOLUTION}
+      ${innerRadius * RESOLUTION}
       0 0 1
       ${tailLoopInt.x * RESOLUTION}
       ${tailLoopInt.y * RESOLUTION}
@@ -281,8 +277,8 @@ class Loop extends React.Component {
       ${tailInExt.dy * RESOLUTION}
 
       A
-      ${(loopRadius + halfWidth) * RESOLUTION}
-      ${(loopRadius + halfWidth) * RESOLUTION}
+      ${outterRadius * RESOLUTION}
+      ${outterRadius * RESOLUTION}
       0 0 0
       ${headloopExt.x * RESOLUTION}
       ${headloopExt.y * RESOLUTION}
@@ -303,7 +299,7 @@ class Loop extends React.Component {
     `
   })
 
-  _getWholeOutPath = memoize((tailLoop, headLoop) => {
+  _getWholeOutPaths = memoize((tailLoop, headLoop) => {
     const {
       width,
       xStartPosition,
@@ -320,8 +316,6 @@ class Loop extends React.Component {
     const sinHeadLoop = Math.sin(headLoop)
     const cosTailLoop = Math.cos(tailLoop)
     const sinTailLoop = Math.sin(tailLoop)
-    const cosHeadLoopPlusPI = Math.cos(headLoop + Math.PI)
-    const sinHeadLoopPlusPI = Math.sin(headLoop + Math.PI)
     const innerRadius = loopRadius - halfWidth
     const outterRadius = loopRadius + halfWidth
     const capRadius = halfWidth / 6
@@ -343,7 +337,10 @@ class Loop extends React.Component {
       y: center.y - sinTailLoop * innerRadius,
     }
 
-    const path = `
+    const wholeOutFillPath = (tailLoop >= Math.PI) ?
+    'M 0 0'
+    :
+    `
       M
       ${tailLoopExt.x * RESOLUTION}
       ${tailLoopExt.y * RESOLUTION}
@@ -355,12 +352,20 @@ class Loop extends React.Component {
       ${headLoopExt.x * RESOLUTION}
       ${headLoopExt.y * RESOLUTION}
 
-      A
-      ${capRadius * RESOLUTION}
-      ${capRadius * RESOLUTION}
-      0 0 0
-      ${headLoopInt.x * RESOLUTION}
-      ${headLoopInt.y * RESOLUTION}
+      ${
+        headLoop > Math.PI ? `
+        L
+        ${headLoopInt.x * RESOLUTION}
+        ${headLoopInt.y * RESOLUTION}
+        ` : `
+        A
+        ${capRadius * RESOLUTION}
+        ${capRadius * RESOLUTION}
+        0 0 0
+        ${headLoopInt.x * RESOLUTION}
+        ${headLoopInt.y * RESOLUTION}
+        `
+      }
 
       A
       ${innerRadius * RESOLUTION}
@@ -377,7 +382,55 @@ class Loop extends React.Component {
       ${tailLoopExt.y * RESOLUTION}
     `
 
-    return path
+    const wholeOutBorderPath = (tailLoop >= Math.PI) ?
+      'M 0 0'
+      :
+      `
+      M
+      ${tailLoopExt.x * RESOLUTION}
+      ${tailLoopExt.y * RESOLUTION}
+
+      A
+      ${(loopRadius + halfWidth) * RESOLUTION}
+      ${(loopRadius + halfWidth) * RESOLUTION}
+      0 0 0
+      ${headLoopExt.x * RESOLUTION}
+      ${headLoopExt.y * RESOLUTION}
+
+      ${
+        headLoop > Math.PI ? `
+        M
+        ${headLoopInt.x * RESOLUTION}
+        ${headLoopInt.y * RESOLUTION}
+        ` : `
+        A
+        ${capRadius * RESOLUTION}
+        ${capRadius * RESOLUTION}
+        0 0 0
+        ${headLoopInt.x * RESOLUTION}
+        ${headLoopInt.y * RESOLUTION}
+        `
+      }
+      
+      A
+      ${innerRadius * RESOLUTION}
+      ${innerRadius * RESOLUTION}
+      0 0 1
+      ${tailLoopInt.x * RESOLUTION}
+      ${tailLoopInt.y * RESOLUTION}
+
+      A
+      ${capRadius * RESOLUTION}
+      ${capRadius * RESOLUTION}
+      0 0 0
+      ${tailLoopExt.x * RESOLUTION}
+      ${tailLoopExt.y * RESOLUTION}
+    `
+
+    return {
+      wholeOutFillPath,
+      wholeOutBorderPath,
+    }
   })
 
   _handleTailMoveForCountDown = ({ value }) => {
@@ -403,8 +456,8 @@ class Loop extends React.Component {
     let relativeProgression
     let secondRate
 
-    if (relativeTailProgression > .25 && relativeTailProgression < .5) {  // in the in loop
-      relativeProgression = (relativeTailProgression - .25) * 4           // (0 -> 1)
+    if (relativeTailProgression > 1/3 && relativeTailProgression < 2/3) {  // in the in loop
+      relativeProgression = (relativeTailProgression - 1/3) * 3           // (0 -> 1)
       secondRate = loopInDuration * relativeProgression                   // (0 -> loopInDuration)
 
       const newCountdown = Math.floor((duration - secondRate) / 1000)
@@ -414,8 +467,8 @@ class Loop extends React.Component {
           countdown: newCountdown
         })
       }
-    } else if (relativeTailProgression > .5 && relativeTailProgression < .75) { // in the out loop
-      const relativeProgression = (relativeTailProgression - .5) * 4            // (0 -> 1)
+    } else if (relativeTailProgression >= 2/3 && relativeTailProgression < 1) { // in the out loop
+      const relativeProgression = (relativeTailProgression - 2/3) * 3            // (0 -> 1)
       secondRate = loopOutDuration * relativeProgression                        // (0 -> loopInDuration)
 
       const newCountdown = Math.floor((duration - loopInDuration - secondRate) / 1000)
@@ -425,7 +478,7 @@ class Loop extends React.Component {
           countdown: newCountdown
         })
       }
-    } else if (relativeTailProgression > .75 && countdown !== 0) {
+    } else if (relativeTailProgression > 1 && countdown !== 0) {
       this.setState({
         countdown: 0
       })
@@ -441,11 +494,8 @@ const styles = StyleSheet.create({
     height: windowWidth,
   },
   loop: {
-    // position: 'absolute',
     width: '100%',
-    // marginBottom: `-${100}%`,
     aspectRatio: 1/3,
-    // height: 400
   },
   countdown: {
     color: '#fff',
