@@ -490,7 +490,6 @@ const styles = StyleSheet.create({
   timer: {
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'visible',
     height: windowWidth,
   },
   loop: {

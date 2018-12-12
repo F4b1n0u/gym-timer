@@ -1,6 +1,5 @@
 import React from 'react'
-import { StyleSheet, SafeAreaView, Easing, FlatList, Animated } from 'react-native'
-
+import { StyleSheet, SafeAreaView, Easing, FlatList } from 'react-native'
 import Sequence from './Sequence'
 
 const timerIds = [
@@ -25,24 +24,26 @@ class App extends React.Component {
   constructor(props) {
     super(props)
 
-    this.sequences = [
-      {
-        id: 100,
-        timers: timerIds.map((id, index) => ({
-          id,
-          durations: {
-            in: 1250,
-            loopIn: 5000 + (index % 6) * 10000,
-            loopOut: 5000,
-          },
-          easings: {
-              in: Easing.in(Easing.bounce),
-              loopIn: Easing.in(Easing.linear), // if loopIn < loopOut
-              loopOut: Easing.in(Easing.linear),
-          },
-        })),
-      },
-    ]
+    this.state = {
+      sequences: [
+        {
+          id: 100,
+          timers: timerIds.map((id, index) => ({
+            id,
+            durations: {
+              in: 1000,
+              loopIn: 5000 + (index % 6) * 10000,
+              loopOut: 5000,
+            },
+            easings: {
+                in: Easing.in(Easing.bounce),
+                loopIn: Easing.in(Easing.linear), // if loopIn < loopOut
+                loopOut: Easing.in(Easing.linear),
+            },
+          })),
+        },
+      ]
+    }
   }
 
   _renderSequence = ({ item: sequence }) => (
@@ -55,6 +56,10 @@ class App extends React.Component {
   _keyExtractor = ({ id }) => `${id}`
 
   render() {
+    const {
+      sequences,
+    } = this.state
+
     const d = ''
 
     return (
@@ -65,7 +70,7 @@ class App extends React.Component {
           scrollEventThrottle={8}
           style={styles.sequences}          
           horizontal
-          data={this.sequences}
+          data={sequences}
           pagingEnabled
           keyExtractor={this._keyExtractor}
           renderItem={this._renderSequence}
@@ -79,7 +84,6 @@ const styles = StyleSheet.create({
   app: {
     flex: 1,
     backgroundColor: '#000',
-    
   },
   sequences: {
     backgroundColor: '#000',
