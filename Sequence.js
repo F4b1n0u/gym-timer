@@ -1,8 +1,7 @@
 import React from 'react'
 import { StyleSheet, Dimensions, FlatList, View, Animated, Easing } from 'react-native'
-import Color from 'color'
 
-import Loop from './Loop'
+import Timer from './Timer'
 
 const { width: windowWidth } = Dimensions.get('window')
 class Sequence extends React.Component {
@@ -16,14 +15,8 @@ class Sequence extends React.Component {
   _keyExtractor = ({ id }) => `${id}`
 
   _renderTimer = ({ item: timer, index }) => (
-    <Loop
+    <Timer
       {...timer}
-      width={15 / 100}
-      loopRadius={3 / 10}
-      xStartPosition={2 / 10}
-      borderWidth={8 / 100}
-      fillColor={Color(`#5A7AED`).hex()}
-      borderColor={`#fff`}
       headProgression={this._headProgression}
       tailProgression={this._tailProgression}
       startsAt={index}
