@@ -14,7 +14,11 @@
     "fast-memoize": "^2.5.1",
     "react": "16.5.0",
     "react-native": "https://github.com/expo/react-native/archive/sdk-31.0.0.tar.gz",
-    "react-native-reanimated": "^1.0.0-alpha.10"
+    "react-native-reanimated": "^1.0.0-alpha.10",
+    "react-redux": "^6.0.0",
+    "redux": "^4.0.1",
+    "redux-observable": "^1.0.0",
+    "reselect": "^4.0.0"
   },
   "devDependencies": {
     "babel-preset-expo": "^5.0.0"
