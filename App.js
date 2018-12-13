@@ -1,13 +1,14 @@
 import React from 'react'
-import { StyleSheet, SafeAreaView, Easing, FlatList, Animated } from 'react-native'
-
+import { StyleSheet, SafeAreaView, Easing, FlatList } from 'react-native'
 import Sequence from './Sequence'
 
 const timerIds = [
   0,
   1,
-  2,3
-  ,4,5,6,7,8,9,
+  2,
+  3,
+  4,
+  // 5,6,7,8,9,
   // 10,11,12,13,14,15,16,17,18,19,
   // 20,21,22,23,24,25,26,27,28,29,
   // 30,31,32,33,34,35,36,37,38,39,
@@ -23,31 +24,26 @@ class App extends React.Component {
   constructor(props) {
     super(props)
 
-    this.sequences = [
-      {
-        id: 100,
-        timers: timerIds.map((id, index) => ({
-          id,
-          durations: {
-            in: 1500,
-            loopIn: 1000,
-            loopOut: 1000,
-            out: 500,
-          },
-          easings: {
-              in: Easing.in(Easing.bounce),
-              loopIn: Easing.in(Easing.linear), // if loopIn < loopOut
-              loopOut: Easing.in(Easing.linear),
-              out: Easing.in(Easing.ease),
-              joinHack: .165, // in != out
-          },
-          transitions: {
-            in: true,
-            out: true,
-          }
-        })),
-      },
-    ]
+    this.state = {
+      sequences: [
+        {
+          id: 100,
+          timers: timerIds.map((id, index) => ({
+            id,
+            durations: {
+              in: 1000,
+              loopIn: 5000 + (index % 6) * 10000,
+              loopOut: 5000,
+            },
+            easings: {
+                in: Easing.in(Easing.bounce),
+                loopIn: Easing.in(Easing.linear), // if loopIn < loopOut
+                loopOut: Easing.in(Easing.linear),
+            },
+          })),
+        },
+      ]
+    }
   }
 
   _renderSequence = ({ item: sequence }) => (
@@ -60,6 +56,10 @@ class App extends React.Component {
   _keyExtractor = ({ id }) => `${id}`
 
   render() {
+    const {
+      sequences,
+    } = this.state
+
     const d = ''
 
     return (
@@ -70,7 +70,7 @@ class App extends React.Component {
           scrollEventThrottle={8}
           style={styles.sequences}          
           horizontal
-          data={this.sequences}
+          data={sequences}
           pagingEnabled
           keyExtractor={this._keyExtractor}
           renderItem={this._renderSequence}
@@ -84,7 +84,6 @@ const styles = StyleSheet.create({
   app: {
     flex: 1,
     backgroundColor: '#000',
-    
   },
   sequences: {
     backgroundColor: '#000',
