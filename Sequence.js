@@ -123,19 +123,33 @@ class Sequence extends React.Component {
       const isReseting = progression >= timers.length
 
       if (isReseting) {
-        this._tailProgression.setValue(0)
-      }
-
-      this._startTimerAnimation()
-      
-      progression = this._tailProgression.__getValue()
-      const item = timers[Number(progression.toFixed(0))]
-      setTimeout(() => {
+        // TODO check why they are not all reseseted properly
         this._timersList.scrollToItem({
           animated: true,
-          item
+          item: timers[0]
         })
-      }, 100)
+        Animated.timing(
+          this._tailProgression,
+          {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+            easing: Easing.inOut(Easing.ease),
+          },
+        ).start(this._startTimerAnimation)
+        
+      } else {
+        progression = this._tailProgression.__getValue()
+        const item = timers[Number(progression.toFixed(0))]
+        setTimeout(() => {
+          this._timersList.scrollToItem({
+            animated: true,
+            item
+          })
+        }, 100)
+
+        this._startTimerAnimation()
+      }
     })
   }
 }

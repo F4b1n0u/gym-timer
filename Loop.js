@@ -195,7 +195,8 @@ class Loop extends React.Component {
     if(headProgression > this._getStep(2) && tailProgression <= this._getStep(3)) {
       const headLoopOut = Number(this.headLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
       const tailLoopOut = Number(this.tailLoopOut.__getValue().toFixed(ANIMATION_PRECISION))
-      const { wholeOutFillPath, wholeOutBorderPath } = this._getWholeOutPaths(tailLoopOut, headLoopOut)
+      const hasHead = headProgression > this._getStep(3)
+      const { wholeOutFillPath, wholeOutBorderPath } = this._getWholeOutPaths(tailLoopOut, headLoopOut, hasHead)
 
       this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
       this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
@@ -299,7 +300,7 @@ class Loop extends React.Component {
     `
   })
 
-  _getWholeOutPaths = memoize((tailLoop, headLoop) => {
+  _getWholeOutPaths = memoize((tailLoop, headLoop, hasHead) => {
     const {
       width,
       xStartPosition,
@@ -353,7 +354,7 @@ class Loop extends React.Component {
       ${headLoopExt.y * RESOLUTION}
 
       ${
-        headLoop > Math.PI ? `
+        hasHead ? `
         L
         ${headLoopInt.x * RESOLUTION}
         ${headLoopInt.y * RESOLUTION}
@@ -398,7 +399,7 @@ class Loop extends React.Component {
       ${headLoopExt.y * RESOLUTION}
 
       ${
-        headLoop > Math.PI ? `
+        hasHead ? `
         M
         ${headLoopInt.x * RESOLUTION}
         ${headLoopInt.y * RESOLUTION}
