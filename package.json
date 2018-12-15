@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "color": "^3.1.0",
+    "d3": "^5.7.0",
     "expo": "^31.0.2",
     "fast-memoize": "^2.5.1",
     "react": "16.5.0",

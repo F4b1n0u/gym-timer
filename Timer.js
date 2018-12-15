@@ -8,6 +8,7 @@ import Loop from './Loop'
 const ANIMATION_PRECISION = 4
 const { width: windowWidth } = Dimensions.get('window')
 
+export const LOOP_OUT_DURATION = 5000
 class Timer extends React.Component {
   constructor(props) {
     super(props)
@@ -15,19 +16,28 @@ class Timer extends React.Component {
     const {
       tailProgression,
       durations: {
-        loopIn,
-        loopOut,
+        loop,
       },
     } = props
 
     this.state = {
-      countdown: (loopIn + loopOut) / 1000,
+      countdown: loop / 1000,
     }
 
     tailProgression.addListener(this._handleTailMoveForCountDown)
   }
 
-  componentWillMount() {
+  _getLoopInDuration = () => {
+    const {
+      durations: {
+        loop,
+      },
+    } = this.props
+
+    return loop - LOOP_OUT_DURATION
+  }
+
+  componentWillUnmount() {
     const {
       tailProgression,
     } = this.props
@@ -39,7 +49,7 @@ class Timer extends React.Component {
     const {
       countdown,
     } = this.state
-    
+
     return (
       <View
         style={styles.timer}
@@ -68,11 +78,10 @@ class Timer extends React.Component {
     this._setCountdown(Number(value.toFixed(ANIMATION_PRECISION)))
   }
 
-  _setCountdown = memoize((tailProgression) => {
+  _setCountdown = (tailProgression) => {
     const {
       durations: {
-        loopIn: loopInDuration,
-        loopOut: loopOutDuration,
+        loop: loopDuration,
       },
       startsAt,
     } = this.props
@@ -83,13 +92,13 @@ class Timer extends React.Component {
 
     const relativeTailProgression = tailProgression - startsAt
 
-    const duration = loopInDuration + loopOutDuration + 1000
+    const duration =  Math.floor(loopDuration + 1000)
     let relativeProgression
     let secondRate
 
     if (relativeTailProgression > 1/3 && relativeTailProgression < 2/3) {  // in the in loop
       relativeProgression = (relativeTailProgression - 1/3) * 3           // (0 -> 1)
-      secondRate = loopInDuration * relativeProgression                   // (0 -> loopInDuration)
+      secondRate = this._getLoopInDuration() * relativeProgression                   // (0 -> loopInDuration)
 
       const newCountdown = Math.floor((duration - secondRate) / 1000)
 
@@ -100,9 +109,9 @@ class Timer extends React.Component {
       }
     } else if (relativeTailProgression >= 2/3 && relativeTailProgression < 1) { // in the out loop
       const relativeProgression = (relativeTailProgression - 2/3) * 3            // (0 -> 1)
-      secondRate = loopOutDuration * relativeProgression                        // (0 -> loopInDuration)
+      secondRate = LOOP_OUT_DURATION * relativeProgression                        // (0 -> loopInDuration)
 
-      const newCountdown = Math.floor((duration - loopInDuration - secondRate) / 1000)
+      const newCountdown = Math.floor((duration - this._getLoopInDuration() - secondRate) / 1000)
 
       if (countdown !== newCountdown) {
         this.setState({
@@ -114,7 +123,7 @@ class Timer extends React.Component {
         countdown: 0
       })
     }
-  })
+  }
 }
 
 const styles = StyleSheet.create({

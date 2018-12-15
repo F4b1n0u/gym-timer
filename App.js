@@ -6,8 +6,8 @@ const timerIds = [
   0,
   1,
   2,
-  3,
-  4,
+  // 3,
+  // 4,
   // 5,6,7,8,9,
   // 10,11,12,13,14,15,16,17,18,19,
   // 20,21,22,23,24,25,26,27,28,29,
@@ -32,12 +32,12 @@ class App extends React.Component {
             id,
             durations: {
               in: 1000,
-              loopIn: 5000 + (index % 6) * 10000,
-              loopOut: 5000,
+              // loop: 5000 + (index % 6) * 10000,
+              loop: 7000,
             },
             easings: {
                 in: Easing.in(Easing.bounce),
-                loopIn: Easing.in(Easing.linear), // if loopIn < loopOut
+                loopIn: Easing.in(Easing.ease), // if loopIn < loopOut
                 loopOut: Easing.in(Easing.linear),
             },
           })),
@@ -67,6 +67,7 @@ class App extends React.Component {
         style={styles.app}
       >
         <FlatList
+          scrollEnabled={false}
           scrollEventThrottle={8}
           style={styles.sequences}          
           horizontal
