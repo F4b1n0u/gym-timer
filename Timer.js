@@ -14,7 +14,6 @@ class Timer extends React.Component {
     super(props)
 
     const {
-      tailProgression,
       durations: {
         loop,
       },
@@ -23,8 +22,6 @@ class Timer extends React.Component {
     this.state = {
       countdown: loop / 1000,
     }
-
-    tailProgression.addListener(this._handleTailMoveForCountDown)
   }
 
   _getLoopInDuration = () => {
@@ -35,6 +32,14 @@ class Timer extends React.Component {
     } = this.props
 
     return loop - LOOP_OUT_DURATION
+  }
+  
+  componentWillMount() {
+    const {
+      tailProgression,
+    } = this.props
+
+    tailProgression.addListener(this._handleTailMoveForCountDown)
   }
 
   componentWillUnmount() {
@@ -96,12 +101,11 @@ class Timer extends React.Component {
     let relativeProgression
     let secondRate
 
-    if (relativeTailProgression > 1/3 && relativeTailProgression < 2/3) {  // in the in loop
+    if (relativeTailProgression >= 1/3 && relativeTailProgression < 2/3) {  // in the in loop
       relativeProgression = (relativeTailProgression - 1/3) * 3           // (0 -> 1)
       secondRate = this._getLoopInDuration() * relativeProgression                   // (0 -> loopInDuration)
 
       const newCountdown = Math.floor((duration - secondRate) / 1000)
-
       if (countdown !== newCountdown) {
         this.setState({
           countdown: newCountdown

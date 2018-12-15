@@ -9,9 +9,7 @@ class Sequence extends React.Component {
   constructor(props) {
     super(props)
 
-    this.state = {
-      state: 'STOPPED',
-    }
+    this.animationState = 'STOPPED'
 
     this._tailProgression = new Animated.Value(0)
     this._headProgression = new Animated.Value(props.timers.length) // TODO bug in the head
@@ -30,31 +28,21 @@ class Sequence extends React.Component {
   )
 
   _handlePressSequence = () => {
-    const {
-      state
-    } = this.state
-
-    switch (state) {
+    switch (this.animationState) {
       case 'STOPPED':
-        this.setState({
-          state: 'STARTED'
-        }, () => {
-          this._playNextAnimation()
-        })
+        this.animationState = 'STARTED'
+        this._playNextAnimation()
+
         break
       case 'STARTED':
-        this.setState({
-          state: 'PAUSED'
-        }, () => {
-          this._tailProgression.stopAnimation()
-        })
+        this.animationState = 'PAUSED'
+        this._tailProgression.stopAnimation()
+
         break
       case 'PAUSED':
-        this.setState({
-          state: 'STARTED'
-        }, () => {
-          this._resumeCurrentAnimation()
-        })
+        this.animationState = 'STARTED'
+        this._resumeCurrentAnimation()
+
         break
       default:
         break
@@ -77,11 +65,8 @@ class Sequence extends React.Component {
       }, 100)
 
       nextAnimation.start(() => {
-        const {
-          state,
-        } = this.state
         // TODO try to move that at the beginning of _playNextAnimation to avoid duplication of this if
-        if (state === 'STARTED') {
+        if (this.animationState === 'STARTED') {
           this._playNextAnimation()
         }
       })
@@ -107,7 +92,6 @@ class Sequence extends React.Component {
 
     const tailProgression = this._tailProgression.__getValue()
     const progressionRoot = Math.floor(tailProgression)
-    const progressionDetail = tailProgression - progressionRoot
     const timer = timers[progressionRoot]
 
     const {
@@ -172,11 +156,8 @@ class Sequence extends React.Component {
         easing: resumed_ease(easing, remainingDuration),
       },
     ).start(() => {
-      const {
-        state,
-      } = this.state
       // TODO try to move that at the beginning of _playNextAnimation to avoid duplication of this if
-      if (state === 'STARTED') {
+      if (this.animationState === 'STARTED') {
         this._playNextAnimation()
       }
     })

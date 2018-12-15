@@ -49,12 +49,19 @@ class Loop extends React.Component {
     this.tailIn = tailProgression.interpolate(interpolations.in)
     this.tailLoopIn = tailProgression.interpolate(interpolations.loopIn)
     this.tailLoopOut = tailProgression.interpolate(interpolations.loopOut)
+  }
+
+  componentWillMount() {
+    const {
+      headProgression,
+      tailProgression,
+    } = this.props
 
     headProgression.addListener(this._setPaths)
     tailProgression.addListener(this._setPaths)
   }
 
-  componentWillMount() {
+  componentWillUnmount() {
     const {
       headProgression,
       tailProgression,
