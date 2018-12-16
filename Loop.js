@@ -1,10 +1,11 @@
 import React from 'react'
-import { StyleSheet, Easing, Text, View, Dimensions } from 'react-native'
+import { StyleSheet, Easing } from 'react-native'
 import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 
-const ANIMATION_PRECISION = 4
-const RESOLUTION = 10
+export const ANIMATION_PRECISION = 4
+export const RESOLUTION = 10
+
 class Loop extends React.Component {
   constructor(props) {
     super(props)

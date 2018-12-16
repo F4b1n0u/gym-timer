@@ -27,9 +27,11 @@ class App extends React.Component {
     this.state = {
       sequences: [
         {
-          id: 100,
-          timers: timerIds.map((id, index) => ({
-            id,
+          key: '100',
+          timers: timerIds.map((key, index) => ({
+            // key is required for the FlatList AND the usage of CellRendererComponent
+            // CellRendererComponent seems to do not extract the key automatically
+            key: key.toString(),
             durations: {
               in: 1000,
               loop: 10000 + (index % 6) * 10000,
@@ -52,8 +54,6 @@ class App extends React.Component {
     />
   )
 
-  _keyExtractor = ({ id }) => `${id}`
-
   render() {
     const {
       sequences,
@@ -72,7 +72,6 @@ class App extends React.Component {
           horizontal
           data={sequences}
           pagingEnabled
-          keyExtractor={this._keyExtractor}
           renderItem={this._renderSequence}
         />
       </SafeAreaView>

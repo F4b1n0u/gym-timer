@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Dimensions, FlatList, View, Animated, TouchableHighlight, Easing } from 'react-native'
+import { StyleSheet, Dimensions, FlatList, View, Animated, TouchableOpacity, Easing, Text } from 'react-native'
 import * as d3 from 'd3'
 
 import Timer, { LOOP_OUT_DURATION } from './Timer'
@@ -9,13 +9,13 @@ class Sequence extends React.Component {
   constructor(props) {
     super(props)
 
-    this.animationState = 'STOPPED'
+    this.state = {
+      animationState: 'STOPPED',
+    }
 
     this._tailProgression = new Animated.Value(0)
     this._headProgression = new Animated.Value(props.timers.length) // TODO bug in the head
   }
-
-  _keyExtractor = ({ id }) => `${id}`
 
   _renderTimer = ({ item: timer, index }) => (
     <Timer
@@ -28,21 +28,27 @@ class Sequence extends React.Component {
   )
 
   _handlePressSequence = () => {
-    switch (this.animationState) {
+    switch (this.state.animationState) {
       case 'STOPPED':
-        this.animationState = 'STARTED'
-        this._playNextAnimation()
-
+        this.setState({
+          animationState: 'STARTED',
+        }, () => {
+          this._playNextAnimation()
+        })
         break
       case 'STARTED':
-        this.animationState = 'PAUSED'
-        this._tailProgression.stopAnimation()
-
+        this.setState({
+          animationState: 'PAUSED'
+        }, () => {
+          this._tailProgression.stopAnimation()
+        })
         break
       case 'PAUSED':
-        this.animationState = 'STARTED'
-        this._resumeCurrentAnimation()
-
+        this.setState({
+          animationState: 'STARTED'
+        }, () => {
+          this._resumeCurrentAnimation()
+        })
         break
       default:
         break
@@ -66,7 +72,7 @@ class Sequence extends React.Component {
 
       nextAnimation.start(() => {
         // TODO try to move that at the beginning of _playNextAnimation to avoid duplication of this if
-        if (this.animationState === 'STARTED') {
+        if (this.state.animationState === 'STARTED') {
           this._playNextAnimation()
         }
       })
@@ -157,7 +163,7 @@ class Sequence extends React.Component {
       },
     ).start(() => {
       // TODO try to move that at the beginning of _playNextAnimation to avoid duplication of this if
-      if (this.animationState === 'STARTED') {
+      if (this.state.animationState === 'STARTED') {
         this._playNextAnimation()
       }
     })
@@ -255,38 +261,57 @@ class Sequence extends React.Component {
     }
   }
 
-  render() {
+  _CellRendererComponent = ({ children, index, style, ...props }) => {
     const {
       timers,
     } = this.props
 
     return (
-      <TouchableHighlight
+      <View
+        style={[
+          style, {
+            zIndex: timers.length - index,
+          },
+        ]}
+        index={index}
+        {...props}
+      >
+        {children}
+      </View>
+    )
+  }
+
+  render() {
+    const {
+      timers,
+    } = this.props
+
+    const {
+      animationState
+    } = this.state
+
+    return (
+      <TouchableOpacity
         style={styles.sequence}
         onPress={this._handlePressSequence}
+        activeOpacity={1}
       >
+        <Text
+          style={{
+            color: '#FFFFFF',
+          }}
+        >
+          {animationState}
+        </Text>
+
         <FlatList
           ref={ ref => this._timersList = ref }
           data={timers}
-          keyExtractor={this._keyExtractor}
           renderItem={this._renderTimer}
-          CellRendererComponent={({ children, index, style, ...props }) => (
-            <View
-              style={[
-                style,
-                { 
-                  zIndex: timers.length - index,
-                }
-              ]}
-              index={index}
-              {...props
-            }>
-              {children}
-            </View>
-          )}
           scrollEventThrottle={8}
+          CellRendererComponent={this._CellRendererComponent}
         />
-      </TouchableHighlight>
+      </TouchableOpacity>
     )
   }
 }
