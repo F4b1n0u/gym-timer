@@ -17,7 +17,6 @@ const {
   divide,
   greaterThan,
   greaterOrEq,
-
   interpolate,
   lessOrEq,
   lessThan,
@@ -53,21 +52,18 @@ class Loop extends React.Component {
         outputRange: [0,                1],
         easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
-        useNativeDriver: true,
       },
       loopIn: {
         inputRange:  [this._getStep(1), this._getStep(2)],
         outputRange: [Math.PI,    Math.PI * 2],
         easing: easingLoopIn,
         extrapolate: 'clamp',
-        useNativeDriver: true,
       },
       loopOut: {
         inputRange:  [this._getStep(2), this._getStep(3)],
         outputRange: [0,                Math.PI],
         easing: easingLoopOut,
         extrapolate: 'clamp',
-        useNativeDriver: true,
       },
     }
 
@@ -117,46 +113,46 @@ class Loop extends React.Component {
     }
 
     const path = concat(
-      'M',
+      ' M',
       multiply(headloopInt.x, RESOLUTION),
       multiply(headloopInt.y, RESOLUTION),
       
-      'A',
+      ' A',
       multiply(innerRadius, RESOLUTION),
       multiply(innerRadius, RESOLUTION),
-      '0 0 1',
+      ' 0 0 1',
       multiply(tailLoopInt.x, RESOLUTION),
       multiply(tailLoopInt.y, RESOLUTION),
 
-      'l',
+      ' l',
       multiply(tailInInt.dx, RESOLUTION),
       multiply(tailInInt.dy, RESOLUTION),
 
-      'a',
+      ' a',
       multiply(capRadius, RESOLUTION),
       multiply(capRadius, RESOLUTION),
-      '0 0 0',
+      ' 0 0 0',
       multiply(tailLoopExt.dx, RESOLUTION),
       multiply(tailLoopExt.dy, RESOLUTION),
 
-      'l',
+      ' l',
       multiply(tailInExt.dx, RESOLUTION),
       multiply(tailInExt.dy, RESOLUTION),
 
-      'A',
+      ' A',
       multiply(outterRadius, RESOLUTION),
       multiply(outterRadius, RESOLUTION),
-      '0 0 0',
+      ' 0 0 0',
       multiply(headloopInExt.x, RESOLUTION),
       multiply(headloopInExt.y, RESOLUTION),
     )
   
     const cap = cond(lessThan(headLoopIn, 2 * Math.PI),
       concat(
-        'A',
+        ' A',
         multiply(capRadius, RESOLUTION),
         multiply(capRadius, RESOLUTION),
-        '0 0 0',
+        ' 0 0 0',
         multiply(headloopInt.x, RESOLUTION),
         multiply(headloopInt.y, RESOLUTION),
       ),
@@ -167,7 +163,127 @@ class Loop extends React.Component {
       cap,
     )
 
+    const center = {
+      x: add(xStartPosition, loopRadius),
+      y: 1,
+    }
    
+    const cosHeadLoopOut = cos(headLoopOut)
+    const sinHeadLoopOut = sin(headLoopOut)
+    const cosTailLoopOut = cos(tailLoopOut)
+    const sinTailLoopOut = sin(tailLoopOut)
+
+    const tailLoopOutExt = {
+      x: add(center.x, multiply(cosTailLoopOut, outterRadius)),
+      y: add(center.y, multiply(-1, sinTailLoopOut, outterRadius)),
+    }
+    const headLoopOutExt = {
+      x: add(center.x, multiply(cosHeadLoopOut, outterRadius)),
+      y: add(center.y, multiply(-1, sinHeadLoopOut, outterRadius)),
+    }
+    const headLoopOutInt = {
+      x: add(center.x, multiply(cosHeadLoopOut, innerRadius)),
+      y: add(center.y, multiply(-1, sinHeadLoopOut, innerRadius)),
+    }
+    const tailLoopOutInt = {
+      x: add(center.x, multiply(cosTailLoopOut, innerRadius)),
+      y: add(center.y, multiply(-1, sinTailLoopOut, innerRadius)),
+    }
+
+    const hasHead = greaterThan(headProgression, this._getStep(3))
+
+    this._wholeOutFillPath = cond(greaterOrEq(tailLoopOut, Math.PI),
+      'M 0 0',
+      concat(
+        ' M',
+        multiply(tailLoopOutExt.x, RESOLUTION),
+        multiply(tailLoopOutExt.y, RESOLUTION),
+
+        ' A',
+        multiply(add(loopRadius, halfWidth), RESOLUTION),
+        multiply(add(loopRadius, halfWidth), RESOLUTION),
+        ' 0 0 0',
+        multiply(headLoopOutExt.x, RESOLUTION),
+        multiply(headLoopOutExt.y, RESOLUTION),
+        
+        cond(hasHead,
+          concat(
+            ' L',
+            multiply(headLoopOutInt.x, RESOLUTION),
+            multiply(headLoopOutInt.y, RESOLUTION),
+          ),
+          concat(
+            ' A',
+            multiply(capRadius, RESOLUTION),
+            multiply(capRadius, RESOLUTION),
+            ' 0 0 0',
+            multiply(headLoopOutInt.x, RESOLUTION),
+            multiply(headLoopOutInt.y, RESOLUTION),
+          )
+        ),
+        concat(
+          ' A',
+          multiply(innerRadius, RESOLUTION),
+          multiply(innerRadius, RESOLUTION),
+          ' 0 0 1',
+          multiply(tailLoopOutInt.x, RESOLUTION),
+          multiply(tailLoopOutInt.y, RESOLUTION),
+    
+          ' A',
+          multiply(capRadius, RESOLUTION),
+          multiply(capRadius, RESOLUTION),
+          ' 0 0 0',
+          multiply(tailLoopOutExt.x, RESOLUTION),
+          multiply(tailLoopOutExt.y, RESOLUTION),
+        ),
+      ),
+    )
+
+    this._wholeOutBorderPath = cond(greaterOrEq(tailLoopOut,  Math.PI),
+      'M 0 0',
+      concat(
+        ' M',
+        multiply(tailLoopOutExt.x, RESOLUTION),
+        multiply(tailLoopOutExt.y, RESOLUTION),
+
+        ' A',
+        multiply(add(loopRadius, halfWidth), RESOLUTION),
+        multiply(add(loopRadius, halfWidth), RESOLUTION),
+        ' 0 0 0',
+        multiply(headLoopOutExt.x, RESOLUTION),
+        multiply(headLoopOutExt.y, RESOLUTION),
+
+        cond(hasHead,
+          concat(
+            ' M',
+            multiply(headLoopOutInt.x, RESOLUTION),
+            multiply(headLoopOutInt.y, RESOLUTION),
+          ),
+          concat(
+            ' A',
+            multiply(capRadius, RESOLUTION),
+            multiply(capRadius, RESOLUTION),
+            ' 0 0 0',
+            multiply(headLoopOutInt.x, RESOLUTION),
+            multiply(headLoopOutInt.y, RESOLUTION),
+          ),
+        ),
+        
+        ' A',
+        multiply(innerRadius, RESOLUTION),
+        multiply(innerRadius, RESOLUTION),
+        ' 0 0 1',
+        multiply(tailLoopOutInt.x, RESOLUTION),
+        multiply(tailLoopOutInt.y, RESOLUTION),
+
+        ' A',
+        multiply(capRadius, RESOLUTION),
+        multiply(capRadius, RESOLUTION),
+        ' 0 0 0',
+        multiply(tailLoopOutExt.x, RESOLUTION),
+        multiply(tailLoopOutExt.y, RESOLUTION),
+      )
+    )
   }
 
   render() {
@@ -186,11 +302,6 @@ class Loop extends React.Component {
       <View>
         <Animated.Code>
           { () => (
-            // block([
-            //   debug('', this.debug),
-            // ])
-
-
             cond(not( // to avoid the return (see previous code)
               and(
                 not(force),
@@ -228,17 +339,21 @@ class Loop extends React.Component {
                       this._getStep(3),
                     )
                   ),
-                    // block([
-                    //   call([ this._wholeOutFillPath ], ([ wholeOutFillPath, ]) => {
-                    //     this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
-                    //   }),
-                    //   call([ this._wholeOutBorderPath ], ([ wholeOutBorderPath, ]) => {
-                    //     this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
-                    //   }),
-                    // ]),
-                    // call([], () => {
-                    //   this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: 'M 0 0' })
-                    // }),
+                      [
+                        debug('this.wholeOutFillPath', this._wholeOutFillPath),
+                        // block([
+                        //   call([ this._wholeOutFillPath ], ([ wholeOutFillPath, ]) => {
+                        //     this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
+                        //   }),
+                        debug('this._wholeOutBorderPath', this._wholeOutBorderPath),
+                        //   call([ this._wholeOutBorderPath ], ([ wholeOutBorderPath, ]) => {
+                        //     this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
+                        //   }),
+                        // ]),
+                      ],
+                      // call([], () => {
+                      //   this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: 'M 0 0' })
+                      // }),
                 )
               ])
             )
