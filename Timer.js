@@ -18,10 +18,6 @@ class Timer extends React.Component {
         loop,
       },
     } = props
-
-    this.state = {
-      countdown: loop / 1000,
-    }
   }
 
   _getLoopInDuration = () => {
@@ -34,77 +30,7 @@ class Timer extends React.Component {
     return loop - LOOP_OUT_DURATION
   }
   
-  _setCountdown = (tailProgression) => {
-    const {
-      durations: {
-        loop: loopDuration,
-      },
-      startsAt,
-    } = this.props
-
-    const {
-      countdown,
-    } = this.state
-
-    const relativeTailProgression = tailProgression - startsAt
-
-    const duration =  Math.floor(loopDuration + 1000)
-    let relativeProgression
-    let secondRate
-
-    if (relativeTailProgression >= 1/3 && relativeTailProgression < 2/3) {  // in the in loop
-      relativeProgression = (relativeTailProgression - 1/3) * 3           // (0 -> 1)
-      secondRate = this._getLoopInDuration() * relativeProgression                   // (0 -> loopInDuration)
-
-      const newCountdown = Math.floor((duration - secondRate) / 1000)
-      if (countdown !== newCountdown) {
-        this.setState({
-          countdown: newCountdown
-        })
-      }
-    } else if (relativeTailProgression >= 2/3 && relativeTailProgression < 1) { // in the out loop
-      const relativeProgression = (relativeTailProgression - 2/3) * 3            // (0 -> 1)
-      secondRate = LOOP_OUT_DURATION * relativeProgression                        // (0 -> loopInDuration)
-
-      const newCountdown = Math.floor((duration - this._getLoopInDuration() - secondRate) / 1000)
-
-      if (countdown !== newCountdown) {
-        this.setState({
-          countdown: newCountdown
-        })
-      }
-    } else if (relativeTailProgression > 1 && countdown !== 0) {
-      this.setState({
-        countdown: 0
-      })
-    }
-  }
-
-  _handleTailMoveForCountDown = ({ value }) => {
-    this._setCountdown(Number(value.toFixed(ANIMATION_PRECISION)))
-  }
-  
-  componentWillMount() {
-    const {
-      tailProgression,
-    } = this.props
-
-    tailProgression.addListener(this._handleTailMoveForCountDown)
-  }
-
-  componentWillUnmount() {
-    const {
-      tailProgression,
-    } = this.props
-    
-    tailProgression.removeListener(this._handleTailMoveForCountDown)
-  }
-
   render() {
-    const {
-      countdown,
-    } = this.state
-
     return (
       <View
         style={styles.timer}
@@ -118,12 +44,6 @@ class Timer extends React.Component {
           fillColor={Color(`#5A7AED`).hex()}
           borderColor={`#fff`}
         />
-
-        <Text
-          style={styles.countdown}
-        >
-          {countdown}
-        </Text>
       </View>
 
     )
