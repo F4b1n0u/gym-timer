@@ -16,6 +16,8 @@ const {
   debug,
   divide,
   greaterThan,
+  greaterOrEq,
+
   interpolate,
   lessOrEq,
   lessThan,
@@ -78,8 +80,8 @@ class Loop extends React.Component {
     const tailLoopOut = interpolate(tailProgression, interpolations.loopOut)
 
     const halfWidth = divide(width, 2)
-    const cosHeadLoop = cos(headLoopIn)
-    const sinHeadLoop = sin(headLoopIn)
+    const cosHeadLoopIn = cos(headLoopIn)
+    const sinHeadLoopIn = sin(headLoopIn)
     const cosTailLoop = cos(tailLoopIn)
     const sinTailLoop = sin(tailLoopIn)
     const cosTailLoopPlusPI = cos(add(tailLoopIn, Math.PI))
@@ -89,8 +91,8 @@ class Loop extends React.Component {
     const capRadius = divide(halfWidth, 6)
 
     const headloopInt = {
-      x: add(xStartPosition, halfWidth, multiply(add(cosHeadLoop, 1), innerRadius)),
-      y: sub(headIn, multiply(sinHeadLoop, innerRadius)),
+      x: add(xStartPosition, halfWidth, multiply(add(cosHeadLoopIn, 1), innerRadius)),
+      y: sub(headIn, multiply(sinHeadLoopIn, innerRadius)),
     }
     const tailLoopInt = {
       x: add(xStartPosition, halfWidth, multiply(add(cosTailLoop, 1), innerRadius)),
@@ -109,9 +111,9 @@ class Loop extends React.Component {
       dx: multiply(-1, cosTailLoopPlusPI, width),
       dy: multiply(sinTailLoopPlusPI, width)
     }
-    const headloopExt = {
-      x: sub(xStartPosition, add(halfWidth, multiply(add(cosHeadLoop, 1), outterRadius))),
-      y: sub(headIn, multiply(sinHeadLoop, outterRadius)),
+    const headloopInExt = {
+      x: sub(xStartPosition, add(halfWidth, multiply(add(cosHeadLoopIn, 1), outterRadius))),
+      y: sub(headIn, multiply(sinHeadLoopIn, outterRadius)),
     }
 
     const path = concat(
@@ -145,8 +147,8 @@ class Loop extends React.Component {
       multiply(outterRadius, RESOLUTION),
       multiply(outterRadius, RESOLUTION),
       '0 0 0',
-      multiply(headloopExt.x, RESOLUTION),
-      multiply(headloopExt.y, RESOLUTION),
+      multiply(headloopInExt.x, RESOLUTION),
+      multiply(headloopInExt.y, RESOLUTION),
     )
   
     const cap = cond(lessThan(headLoopIn, 2 * Math.PI),
@@ -165,145 +167,7 @@ class Loop extends React.Component {
       cap,
     )
 
-
-    // tailLoopOut, headLoopOut, hasHead
-    
-    // _getWholeOutPaths = memoize((tailLoop, headLoop, hasHead) => {
-    //   const {
-    //     width,
-    //     xStartPosition,
-    //     loopRadius,
-    //   } = this.props
-      
-    //   center = {
-    //     x: xStartPosition + loopRadius,
-    //     y: 1,
-    //   }
-  
-    //   const halfWidth = width / 2
-    //   const cosHeadLoop = Math.cos(headLoop)
-    //   const sinHeadLoop = Math.sin(headLoop)
-    //   const cosTailLoop = Math.cos(tailLoop)
-    //   const sinTailLoop = Math.sin(tailLoop)
-    //   const innerRadius = loopRadius - halfWidth
-    //   const outterRadius = loopRadius + halfWidth
-    //   const capRadius = halfWidth / 6
-  
-    //   const tailLoopExt = { // OK
-    //     x: center.x + cosTailLoop * outterRadius,
-    //     y: center.y + -1 * sinTailLoop * outterRadius,
-    //   }
-    //   const headLoopExt = {
-    //     x: center.x + cosHeadLoop * outterRadius,
-    //     y: center.y + -1 * sinHeadLoop * outterRadius,
-    //   }
-    //   const headLoopInt = {
-    //     x: center.x + cosHeadLoop * innerRadius,
-    //     y: center.y - sinHeadLoop * innerRadius,
-    //   }
-    //   const tailLoopInt = {
-    //     x: center.x + cosTailLoop * innerRadius,
-    //     y: center.y - sinTailLoop * innerRadius,
-    //   }
-  
-    //   const wholeOutFillPath = (tailLoop >= Math.PI) ?
-    //   'M 0 0'
-    //   :
-    //   `
-    //     M
-    //     ${tailLoopExt.x * RESOLUTION}
-    //     ${tailLoopExt.y * RESOLUTION}
-  
-    //     A
-    //     ${(loopRadius + halfWidth) * RESOLUTION}
-    //     ${(loopRadius + halfWidth) * RESOLUTION}
-    //     0 0 0
-    //     ${headLoopExt.x * RESOLUTION}
-    //     ${headLoopExt.y * RESOLUTION}
-  
-    //     ${
-    //       hasHead ? `
-    //       L
-    //       ${headLoopInt.x * RESOLUTION}
-    //       ${headLoopInt.y * RESOLUTION}
-    //       ` : `
-    //       A
-    //       ${capRadius * RESOLUTION}
-    //       ${capRadius * RESOLUTION}
-    //       0 0 0
-    //       ${headLoopInt.x * RESOLUTION}
-    //       ${headLoopInt.y * RESOLUTION}
-    //       `
-    //     }
-  
-    //     A
-    //     ${innerRadius * RESOLUTION}
-    //     ${innerRadius * RESOLUTION}
-    //     0 0 1
-    //     ${tailLoopInt.x * RESOLUTION}
-    //     ${tailLoopInt.y * RESOLUTION}
-  
-    //     A
-    //     ${capRadius * RESOLUTION}
-    //     ${capRadius * RESOLUTION}
-    //     0 0 0
-    //     ${tailLoopExt.x * RESOLUTION}
-    //     ${tailLoopExt.y * RESOLUTION}
-    //   `
-  
-    //   const wholeOutBorderPath = (tailLoop >= Math.PI) ?
-    //     'M 0 0'
-    //     :
-    //     `
-    //     M
-    //     ${tailLoopExt.x * RESOLUTION}
-    //     ${tailLoopExt.y * RESOLUTION}
-  
-    //     A
-    //     ${(loopRadius + halfWidth) * RESOLUTION}
-    //     ${(loopRadius + halfWidth) * RESOLUTION}
-    //     0 0 0
-    //     ${headLoopExt.x * RESOLUTION}
-    //     ${headLoopExt.y * RESOLUTION}
-  
-    //     ${
-    //       hasHead ? `
-    //       M
-    //       ${headLoopInt.x * RESOLUTION}
-    //       ${headLoopInt.y * RESOLUTION}
-    //       ` : `
-    //       A
-    //       ${capRadius * RESOLUTION}
-    //       ${capRadius * RESOLUTION}
-    //       0 0 0
-    //       ${headLoopInt.x * RESOLUTION}
-    //       ${headLoopInt.y * RESOLUTION}
-    //       `
-    //     }
-        
-    //     A
-    //     ${innerRadius * RESOLUTION}
-    //     ${innerRadius * RESOLUTION}
-    //     0 0 1
-    //     ${tailLoopInt.x * RESOLUTION}
-    //     ${tailLoopInt.y * RESOLUTION}
-  
-    //     A
-    //     ${capRadius * RESOLUTION}
-    //     ${capRadius * RESOLUTION}
-    //     0 0 0
-    //     ${tailLoopExt.x * RESOLUTION}
-    //     ${tailLoopExt.y * RESOLUTION}
-    //   `
-  
-    //   return {
-    //     wholeOutFillPath,
-    //     wholeOutBorderPath,
-    //   }
-    // })
-
-    // this._wholeOutFillPath = new Value()
-    // this._wholeOutBorderPath = new Value()
+   
   }
 
   render() {
@@ -323,8 +187,10 @@ class Loop extends React.Component {
         <Animated.Code>
           { () => (
             // block([
-            //   debug('this.path', this._wholeInPath),
+            //   debug('', this.debug),
             // ])
+
+
             cond(not( // to avoid the return (see previous code)
               and(
                 not(force),
@@ -351,29 +217,29 @@ class Loop extends React.Component {
                       this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' })
                     })
                 ),
-                // cond(
-                //   and(
-                //     greaterThan(
-                //       headProgression,
-                //       this._getStep(2),
-                //     ),
-                //     lessOrEq(
-                //       tailProgression,
-                //       this._getStep(3),
-                //     )
-                //   ),
-                //     block([
-                //       call([ this._wholeOutFillPath ], ([ wholeOutFillPath, ]) => {
-                //         this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
-                //       }),
-                //       call([ this._wholeOutBorderPath ], ([ wholeOutBorderPath, ]) => {
-                //         this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
-                //       }),
-                //     ]),
-                //     call([], () => {
-                //       this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: 'M 0 0' })
-                //     }),
-                // )
+                cond(
+                  and(
+                    greaterThan(
+                      headProgression,
+                      this._getStep(2),
+                    ),
+                    lessOrEq(
+                      tailProgression,
+                      this._getStep(3),
+                    )
+                  ),
+                    // block([
+                    //   call([ this._wholeOutFillPath ], ([ wholeOutFillPath, ]) => {
+                    //     this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
+                    //   }),
+                    //   call([ this._wholeOutBorderPath ], ([ wholeOutBorderPath, ]) => {
+                    //     this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
+                    //   }),
+                    // ]),
+                    // call([], () => {
+                    //   this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: 'M 0 0' })
+                    // }),
+                )
               ])
             )
           )}
