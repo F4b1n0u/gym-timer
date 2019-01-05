@@ -1,6 +1,5 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
-import memoize from 'fast-memoize'
 import { Svg } from 'expo'
 
 import Animated, { Easing } from 'react-native-reanimated'
@@ -23,6 +22,7 @@ const {
   multiply,
   not,
   or,
+  set,
   sin,
   sub,
   Value,
@@ -44,36 +44,61 @@ class Loop extends React.Component {
       width,
       xStartPosition,
       loopRadius,
+      startsAt,
+      endsAt,
+      isLast,
     } = props
 
     const interpolations = {
+      relative: {
+        inputRange:  [startsAt, endsAt],
+        outputRange: [0,        3/3],
+        easing: Easing.inOut(Easing.linear),
+      },
       in: {
-        inputRange:  [this._getStep(0), this._getStep(1)],
+        inputRange:  [0, 1/3],
         outputRange: [0,                1],
         easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
       },
       loopIn: {
-        inputRange:  [this._getStep(1), this._getStep(2)],
+        inputRange:  [1/3, 2/3],
         outputRange: [Math.PI,    Math.PI * 2],
         easing: easingLoopIn,
         extrapolate: 'clamp',
       },
       loopOut: {
-        inputRange:  [this._getStep(2), this._getStep(3)],
+        inputRange:  [2/3, 1],
         outputRange: [0,                Math.PI],
         easing: easingLoopOut,
         extrapolate: 'clamp',
       },
     }
 
-    const headIn = interpolate(headProgression, interpolations.in)
-    const headLoopIn = interpolate(headProgression, interpolations.loopIn)
-    const headLoopOut = interpolate(headProgression, interpolations.loopOut)
+    this._relativeHeadProgression = interpolate(headProgression, interpolations.relative)
+    this._relativeTailProgression = interpolate(tailProgression, interpolations.relative)
 
-    const tailIn = interpolate(tailProgression, interpolations.in)
-    const tailLoopIn = interpolate(tailProgression, interpolations.loopIn)
-    const tailLoopOut = interpolate(tailProgression, interpolations.loopOut)
+    this._isRunningIn = and(
+      greaterThan(tailProgression, startsAt),
+      lessOrEq(tailProgression, startsAt + 2/3),
+    )
+    this._isRunningOut = and(
+      greaterThan(tailProgression, startsAt + 2/3),
+      lessThan(tailProgression, endsAt),
+    )
+    this._isRunning = or(this._isRunningIn, this._isRunningOut)
+    this._isDone = greaterOrEq(tailProgression, endsAt)
+
+    this._isInitialRenderDone = new Value(0)
+    this._isCleanRenderDone = new Value(0)
+
+    const headIn = interpolate(this._relativeHeadProgression, interpolations.in)
+    const headLoopIn = interpolate(this._relativeHeadProgression, interpolations.loopIn)
+    const headLoopOut = interpolate(this._relativeHeadProgression, interpolations.loopOut)
+
+    const tailIn = interpolate(this._relativeTailProgression, interpolations.in)
+    const tailLoopIn = interpolate(this._relativeTailProgression, interpolations.loopIn)
+    const tailLoopOut = interpolate(this._relativeTailProgression, interpolations.loopOut)
 
     const halfWidth = divide(width, 2)
     const cosHeadLoopIn = cos(headLoopIn)
@@ -201,8 +226,6 @@ class Loop extends React.Component {
       y: add(center.y, multiply(-1, sinTailLoopOut, innerRadius)),
     }
 
-    const hasHead = greaterThan(headProgression, this._getStep(3))
-
     this._wholeOutFillPath = cond(greaterOrEq(tailLoopOut, Math.PI),
       'M 0 0',
       concat(
@@ -220,13 +243,7 @@ class Loop extends React.Component {
         ' ',
         multiply(headLoopOutExt.y, RESOLUTION),
         
-        cond(hasHead,
-          concat(
-            ' L ',
-            multiply(headLoopOutInt.x, RESOLUTION),
-            ' ',
-            multiply(headLoopOutInt.y, RESOLUTION),
-          ),
+        cond(isLast,
           concat(
             ' A ',
             multiply(capRadius, RESOLUTION),
@@ -236,7 +253,13 @@ class Loop extends React.Component {
             multiply(headLoopOutInt.x, RESOLUTION),
             ' ',
             multiply(headLoopOutInt.y, RESOLUTION),
-          )
+          ),
+          concat(
+            ' L ',
+            multiply(headLoopOutInt.x, RESOLUTION),
+            ' ',
+            multiply(headLoopOutInt.y, RESOLUTION),
+          ),
         ),
         concat(
           ' A ',
@@ -276,19 +299,19 @@ class Loop extends React.Component {
         ' ',
         multiply(headLoopOutExt.y, RESOLUTION),
 
-        cond(hasHead,
-          concat(
-            ' M ',
-            multiply(headLoopOutInt.x, RESOLUTION),
-            ' ',
-            multiply(headLoopOutInt.y, RESOLUTION),
-          ),
+        cond(isLast,
           concat(
             ' A ',
             multiply(capRadius, RESOLUTION),
             ' ',
             multiply(capRadius, RESOLUTION),
             ' 0 0 0 ',
+            multiply(headLoopOutInt.x, RESOLUTION),
+            ' ',
+            multiply(headLoopOutInt.y, RESOLUTION),
+          ),
+          concat(
+            ' M ',
             multiply(headLoopOutInt.x, RESOLUTION),
             ' ',
             multiply(headLoopOutInt.y, RESOLUTION),
@@ -321,64 +344,58 @@ class Loop extends React.Component {
       fillColor,
       borderColor,
       borderWidth,
-      trailColor,
-      tailProgression,
-      headProgression,
     } = this.props
 
     const d = 'M 0 0'
-    const force = new Value(0)
+    
     return (
       <View>
         <Animated.Code>
-          { () => (
-            cond(not( // to avoid the return (see previous code)
-              and(
-                not(force),
-                or(
-                  lessThan(tailProgression, this._getStep(0)),
-                  greaterThan(tailProgression, this._getStep(3))
-                ),
-                or(
-                  lessThan(headProgression, this._getStep(0)),
-                  greaterThan(headProgression, this._getStep(3))
-                )
-              ),
-            ),
-              block([
-                cond(
-                  or(
-                    lessOrEq(headProgression, this._getStep(2)),
-                    lessOrEq(tailProgression, this._getStep(2)),
+          {() => {
+            return block([
+              cond(or(not(this._isInitialRenderDone), this._isRunning),
+                block([
+                  cond(or(
+                    this._isRunningIn,
+                    not(this._isInitialRenderDone)
                   ),
-                    call([ this._wholeInPath ], ([ wholeIntPath, ]) => {
-                      this._loopInElement && this._loopInElement.setNativeProps({ d: wholeIntPath })
-                    }),
+                      call([ this._wholeInPath ], ([ wholeIntPath, ]) => {
+                        this._loopInElement && this._loopInElement.setNativeProps({ d: wholeIntPath })
+                      }),
+                      call([], () => {
+                        this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' })
+                      })
+                  ),
+                  cond(or(
+                    this._isRunningOut,
+                    not(this._isDone),
+                    not(this._isInitialRenderDone),
+                  ),
+                    block([
+                      call([ this._wholeOutFillPath, this._wholeOutBorderPath ], ([ wholeOutFillPath, wholeOutBorderPath]) => {
+                        this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
+                        this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
+                      }),
+                    ]),
+                  ),
+                  cond(not(this._isInitialRenderDone), set(this._isInitialRenderDone, 1))
+                ]),
+                cond(and(
+                  this._isDone,
+                  not(this._isCleanRenderDone),
+                ),
+                  [
                     call([], () => {
                       this._loopInElement && this._loopInElement.setNativeProps({ d: 'M 0 0' })
-                    })
-                ),
-                cond(
-                  and(
-                    greaterThan(headProgression, this._getStep(2)),
-                    lessOrEq(tailProgression, this._getStep(3))
-                  ),
-                    
-                      block([
-                        call([ this._wholeOutFillPath ], ([ wholeOutFillPath, ]) => {
-                          this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: wholeOutFillPath })
-                        }),
-                        call([ this._wholeOutBorderPath ], ([ wholeOutBorderPath, ]) => {
-                          this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: wholeOutBorderPath })
-                        }),
-                      ]),
-                      call([], () => {
-                        this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: 'M 0 0' })
-                      }),
+                      this._loopOutFillElement && this._loopOutFillElement.setNativeProps({ d: 'M 0 0' })
+                      this._loopOutBorderElement && this._loopOutBorderElement.setNativeProps({ d: 'M 0 0' })
+                    }),
+                    cond(not(this._isCleanRenderDone), set(this._isCleanRenderDone, 1))
+                  ]
                 )
-              ])
-            )
-          )}
+              )
+            ])
+          }}
         </Animated.Code>
         <Svg
           style={styles.loop}
@@ -408,16 +425,10 @@ class Loop extends React.Component {
       </View>
     )
   }
+}
 
-  _getStep = memoize((ratio) => {
-    const {
-      startsAt,
-      endsAt,
-    } = this.props
-
-    
-    return startsAt + ratio / 3 * Math.abs(endsAt - startsAt)
-  })
+Loop.defaultProps = {
+  isLast: true,
 }
 
 const styles = StyleSheet.create({
