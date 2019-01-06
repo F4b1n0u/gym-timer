@@ -57,19 +57,19 @@ class Loop extends React.Component {
       },
       in: {
         inputRange:  [0, 1/3],
-        outputRange: [0,                1],
+        outputRange: [0, 1],
         easing: Easing.inOut(Easing.linear),
         extrapolate: 'clamp',
       },
       loopIn: {
-        inputRange:  [1/3, 2/3],
-        outputRange: [Math.PI,    Math.PI * 2],
+        inputRange:  [1/3,     2/3],
+        outputRange: [Math.PI, Math.PI * 2],
         easing: easingLoopIn,
         extrapolate: 'clamp',
       },
       loopOut: {
         inputRange:  [2/3, 1],
-        outputRange: [0,                Math.PI],
+        outputRange: [0,   Math.PI],
         easing: easingLoopOut,
         extrapolate: 'clamp',
       },
@@ -91,7 +91,7 @@ class Loop extends React.Component {
 
     this._isInitialRenderDone = new Value(0)
     this._isCleanRenderDone = new Value(0)
-
+      // TODO the "render" of the loop should be on the onchnage of tail or head
     const headIn = interpolate(this._relativeHeadProgression, interpolations.in)
     const headLoopIn = interpolate(this._relativeHeadProgression, interpolations.loopIn)
     const headLoopOut = interpolate(this._relativeHeadProgression, interpolations.loopOut)

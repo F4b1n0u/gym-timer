@@ -18,12 +18,16 @@ const {
   set,
   startClock,
   stopClock,
+  not,
+  interpolate,
+  Extrapolate,
   timing,
   Value,
+  clockRunning,
 } = Animated
 
 const SEQUENCE_STATE = {
-  STOPPED: 0,
+  STOPPED: -1,
   STARTED: 1,
   PAUSED: 2,
   RESUMED: 3,
@@ -37,28 +41,47 @@ function runSequence({ timers, sequenceState }) {
   const state = {
     finished: new Value(0),
     position: new Value(0),
-    frameTime: new Value(0),
     time: new Value(0),
+    frameTime: new Value(0),
   }
 
   const config = {
-    toValue: new Value(0),
-    duration: new Value(0),
-    easing: Easing.inOut(Easing.linear),
+    duration: timers.length * 1000,
+    toValue: new Value(-1),
+    easing: Easing.inOut(Easing.ease),
   }
 
-  const quantityOfTimer = timers.length
-  
-  return block([
-    cond(and(eq(sequenceState, SEQUENCE_STATE.STARTED), neq(config.toValue, quantityOfTimer)), [
-      set(state.finished, 0),
-      set(state.time, 0),
-      set(state.frameTime, 0),
-      set(config.toValue, quantityOfTimer),
-      set(config.duration, new Value(quantityOfTimer * 1000)),
-      startClock(clock),
-    ]),
+  const sequenceLength = timers.length
 
+  return block([
+    cond(not(clockRunning(clock)),
+      [
+        cond(eq(sequenceState, SEQUENCE_STATE.STARTED), [
+          set(state.finished, 0),
+          set(state.time, 0),
+          set(state.frameTime, 0),
+          set(config.toValue, sequenceLength),
+          startClock(clock),
+        ]),
+        cond(eq(sequenceState, SEQUENCE_STATE.RESUMED), [
+          set(state.time, 0),
+          // set(state.frameTime, 0),
+          startClock(clock),
+        ]),
+      ],
+      [
+        cond(eq(sequenceState, SEQUENCE_STATE.PAUSED), [
+          stopClock(clock),
+        ]),
+        cond(eq(sequenceState, SEQUENCE_STATE.STOPPED), [
+          set(state.finished, 0),
+          set(state.time, 0),
+          set(state.frameTime, 0),
+          set(config.toValue, 0),
+          startClock(clock),
+        ]),
+      ]
+    ),
     timing(clock, state, config),
     cond(state.finished, stopClock(clock)),
     state.position,
@@ -69,7 +92,7 @@ class Sequence extends React.Component {
   constructor(props) {
     super(props)
 
-    this._sequenceState = new Value(SEQUENCE_STATE.STARTED)
+    this._sequenceState = new Value(SEQUENCE_STATE.STOPPED)
     this._pressState = new Value(0)
     
     this._tailProgression = runSequence({
@@ -120,7 +143,7 @@ class Sequence extends React.Component {
     } = this.props
 
     return (
-      <View
+      <TouchableOpacity
         style={styles.sequence}
         onPress={this._handlePressSequence}
         activeOpacity={1}
@@ -150,7 +173,7 @@ class Sequence extends React.Component {
           scrollEventThrottle={8}
           CellRendererComponent={this._CellRendererComponent}
         />
-      </View>
+      </TouchableOpacity>
     )
   }
 }
